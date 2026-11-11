@@ -1,7 +1,13 @@
 // MapLibre globe + all thematic layers. Everything is native MapLibre (no deck.gl) so the
 // globe projection, 3D extrusions and atmosphere work together without a second renderer.
-import maplibregl, { type GeoJSONSource, type Map as MLMap, type ExpressionSpecification, type FilterSpecification } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import { type GeoJSONSource, type Map as MLMap, type ExpressionSpecification, type FilterSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// MapLibre 6 ships its worker as a separate module. Vite has to bundle it and hand back the URL,
+// otherwise the library looks for the file beside the app bundle, finds nothing, and no tile ever loads.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+
+maplibregl.setWorkerUrl(workerUrl);
 import type { Feature, FeatureCollection, Point, Polygon } from 'geojson';
 import { fmtMonth, fmtNum } from './chart';
 import { GAS_PER_BOE, SEGMENTS, segmentOf, seriesAt, type Atlas, type AssetProps, type Stake } from './data';
