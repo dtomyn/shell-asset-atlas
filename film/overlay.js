@@ -19,6 +19,8 @@
     #film-card p { font-size: 25px; margin: 0 0 10px; color: #cfd8e3; text-shadow: 0 2px 16px rgba(0,0,0,.9); }
     #film-card small { display: block; max-width: 1000px; margin: 26px auto 0; font-size: 16.5px; line-height: 1.6; color: #9aa7b8; }
     #film-card .url { margin-top: 22px; font: 500 22px "JetBrains Mono", monospace; color: #ffb703; }
+    #film-curtain { position: fixed; inset: 0; z-index: 2147483639; pointer-events: none; background: #070a0f; opacity: 0; transition: opacity 1s ease; }
+    #film-curtain.on { opacity: 1; }
     #film-chapter { position: fixed; top: 74px; left: 50%; z-index: 2147483641; pointer-events: none; padding: 9px 18px; border-radius: 999px; opacity: 0;
       transform: translateX(-50%); background: rgba(7,10,15,.82); border: 1px solid rgba(255,183,3,.5); color: #f2f5f9;
       font: 600 17px Inter, system-ui, sans-serif; letter-spacing: .01em; white-space: nowrap; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
@@ -39,7 +41,8 @@
     document.body.append(node);
     return node;
   };
-  let cursor, card, chapter, key;
+  let cursor, card, curtain, chapter, key;
+  const KEEP = 'film-keep';
   const mount = () => {
     const style = document.createElement('style');
     style.textContent = CSS;
@@ -50,7 +53,17 @@
     // A popover sits in the top layer, so the cursor can be raised above the app's modal dialog.
     cursor.popover = 'manual';
     cursor.showPopover();
+    curtain = el('div', 'film-curtain');
     card = el('div', 'film-card');
+    // After a cut (render.py restart) the new page opens exactly as the old one closed: curtain down, card up.
+    const kept = JSON.parse(sessionStorage.getItem(KEEP) || 'null');
+    sessionStorage.removeItem(KEEP);
+    if (kept) {
+      curtain.className = kept.curtain;
+      card.className = kept.cardClass;
+      card.innerHTML = kept.card;
+      cursor.style.display = kept.cursor;
+    }
     chapter = el('div', 'film-chapter');
     key = el('div', 'film-key');
     // The cursor follows the real pointer events that Playwright sends, so it can't drift from them.
@@ -109,7 +122,10 @@
       const sources = map.getStyle().sources;
       return Object.keys(sources).every((id) => sources[id].type === 'geojson' || map.isSourceLoaded(id));
     },
-    redraw: () => window.__atlas && window.__atlas.map.redraw(),
+    // Returns nothing: redraw() returns the map itself, and sending that back to the renderer can take minutes.
+    redraw: () => void (window.__atlas && window.__atlas.map.redraw()),
+    /** True when the map has nothing left to load or lay out, its own GeoJSON layers included. */
+    drawn: () => !window.__atlas || window.__atlas.map.loaded(),
     project: ([lng, lat]) => {
       const p = window.__atlas.map.project([lng, lat]);
       return [p.x, p.y];
@@ -154,7 +170,10 @@
       const c = box.getBoundingClientRect();
       const margin = 28;
       const dy = r.bottom > c.bottom - margin ? r.bottom - (c.bottom - margin) : r.top < c.top + margin ? r.top - (c.top + margin) : 0;
-      return Math.abs(dy) > 2 ? { dy: Math.round(dy), x: c.left + c.width / 2, y: c.top + c.height * 0.62 } : null;
+      // The cursor wheels from the box's own left padding. Anywhere else, a list that scrolls by itself
+      // (the storm list in the side panel) can slide under the cursor mid-scroll and take the wheel.
+      const gutter = parseFloat(getComputedStyle(box).paddingLeft) >= 10;
+      return Math.abs(dy) > 2 ? { dy: Math.round(dy), x: gutter ? c.left + 6 : c.left + c.width / 2, y: c.top + c.height * 0.62 } : null;
     },
     card(html, kind) {
       if (html) {
@@ -162,6 +181,9 @@
         card.className = `on ${kind || 'scrim'}`;
       } else card.classList.remove('on');
     },
+    curtain: (on) => curtain.classList.toggle('on', !!on),
+    /** Remembers the curtain, the card and the cursor across a reload of the page. */
+    keep: () => sessionStorage.setItem(KEEP, JSON.stringify({ curtain: curtain.className, cardClass: card.className, card: card.innerHTML, cursor: cursor.style.display })),
     chapter: (number, title) => restart(chapter, `<b>${number}</b>${title}`),
     key: (cap, label) => restart(key, `<kbd>${cap}</kbd>${label}`),
     cursorVisible: (on) => (cursor.style.display = on ? '' : 'none'),

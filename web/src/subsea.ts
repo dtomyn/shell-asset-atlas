@@ -525,6 +525,13 @@ export async function openSubsea(o: SubseaOptions): Promise<SubseaHandle> {
   const scenePaths = paths.map((path) => path.map((p) => toScene(p)));
   let hovered = -1;
   let pointer: Vec2 | null = null;
+  // The film renderer (film/render.py) opens the page with ?film. To point its cursor at a well it
+  // needs to know where the wells are on screen. Nothing else reads this, and it is absent otherwise.
+  if (new URLSearchParams(location.search).has('film')) {
+    const film = window as unknown as Record<string, unknown>;
+    film.__subsea = { wells: () => scenePaths.map((path) => path.map(project)) };
+    cleanup.push(() => delete film.__subsea);
+  }
   const setHovered = (i: number) => {
     if (i === hovered) return;
     if (hovered >= 0 && holes[hovered]) {

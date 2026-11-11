@@ -131,19 +131,19 @@ npm test                      # storm-risk, peer-rank and subsea geometry unit t
 
 ## Explainer film
 
-A narrated explainer of about four minutes is filmed from the real app, one exact frame at a time. A script moves a cursor over the real controls while the page's clock is stopped between frames, so every render comes out the same.
+A narrated explainer of about five and a half minutes is filmed from the real app, one exact frame at a time. A script moves a cursor over the real controls while the page's clock is stopped between frames, so every render comes out the same. It opens on the dive below Perdido, then goes from the globe to a decade of production, the replay of Hurricane Ida, the peer benchmark, the subsea view in full, the wider portfolio and the method.
 
 - **`film/scenes.py`** is the story: each narrated line and each click, in order. Every number spoken is read from the data bundle, so a render after a data refresh stays true. If the data no longer supports a line, the render stops and says which.
-- **`film/render.py`** is the machinery: voice, frame loop, sound mix, captions and storyboard.
+- **`film/render.py`** is the machinery: voice, frame loop, sound mix, captions and storyboard. The app's clock, the storm replay and the three.js dive all run on the film's clock, so the film can show them slowed down and still come out the same every time.
 - **`film/overlay.js`** adds the cursor and the title, chapter and end cards.
 
 ```bash
-python film/render.py --storyboard   # storyboard, script, captions, thumbnail, YouTube text (~15 min)
-python film/render.py                # the 1080p film and all of the above (~1.5 hours)
+python film/render.py --storyboard   # storyboard, script, captions, thumbnail, YouTube text (~10 min; longer the first time, while the voice is made)
+python film/render.py                # the 1080p film and all of the above (~2 hours)
 python film/render.py --remix        # rebuild only the sound on the last render
 ```
 
-It needs `playwright`, `imageio-ffmpeg`, `kokoro-onnx`, `soundfile`, `numpy` and Microsoft Edge. The narration is a synthetic voice, Kokoro `af_heart`. Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` from [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) in a folder and point `KOKORO_DIR` at it. The narration sets the timing: change a line and the picture retimes. To use a real voice, save a line as `film/out/vo/recorded/<id>.wav` (the ids are in `film/out/script.md`).
+It needs `playwright`, `imageio-ffmpeg`, `kokoro-onnx`, `soundfile`, `numpy` and Microsoft Edge with WebGL (the subsea view is filmed on the GPU, like the map). The narration is a synthetic voice, Kokoro `af_heart`. Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` from [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) in a folder and point `KOKORO_DIR` at it. The narration sets the timing: change a line and the picture retimes. To use a real voice, save a line as `film/out/vo/recorded/<id>.wav` (the ids are in `film/out/script.md`).
 
 Everything is written to `film/out`. The videos and voice files are generated and aren't committed.
 

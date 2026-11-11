@@ -2,25 +2,27 @@ TITLE
 A decade of offshore production on one globe, from public records | Shell Asset Atlas (unofficial)
 
 DESCRIPTION
-Oil and gas operators report what they produce to public regulators every month. Shell Asset Atlas puts those records on a 3D globe: 210 installations and sites, 48 fields, 5,941 km of pipelines and a production history you can replay month by month.
+Oil and gas operators report what they produce to public regulators every month. Shell Asset Atlas puts those records on a 3D globe: 210 installations and sites, 48 fields, 5,941 km of pipelines and a production history you can replay month by month. It replays Gulf hurricanes over that history, ranks Shell against every other operator the regulators publish, and dives below a platform to its surveyed well paths, drawn to scale.
 
 Try it yourself: [add the link]
 
-Everything in this video is the real application, filmed frame by frame, with the cursor pressing the real controls. The narration uses a synthetic voice (Kokoro). The music is synthesized.
+Everything in this video is the real application, filmed frame by frame, with the cursor pressing the real controls. The hurricane replay and the dive are shown slowed down. The narration uses a synthetic voice (Kokoro). The music is synthesized.
 
-0:00 Public records, one globe
-0:15 What the atlas is
-0:39 Every column is a hub
-1:07 A decade you can replay
-1:49 Why it's called deepwater
-2:05 Gross is not net
-2:26 Fuel stations as a skyline
-2:44 Or take the tour
-3:08 Nothing taken on trust
-3:30 One globe
+0:00 Under one platform
+0:24 Public records, one globe
+0:45 Every column is a hub
+1:06 A decade you can replay
+1:27 What a hurricane does
+2:19 Against every other operator
+3:09 Below the waterline
+4:21 Gross is not net
+4:35 Beyond the wellhead
+4:55 Nothing taken on trust
+5:14 One globe
 
-Sources: US Bureau of Ocean Energy Management (BOEM / BSEE Data Center), North Sea Transition Authority (Open Government Licence v3.0), Norwegian Offshore Directorate (NLOD 2.0), OpenStreetMap contributors (ODbL), NASA EOSDIS GIBS imagery, CARTO basemap. Data built 2026-11-11.
+Sources: US Bureau of Ocean Energy Management (BOEM / BSEE Data Center), North Sea Transition Authority (Open Government Licence v3.0), Norwegian Offshore Directorate (NLOD 2.0), NOAA National Hurricane Center, OpenStreetMap contributors (ODbL), NASA EOSDIS GIBS imagery, CARTO basemap. Data built 2026-11-11.
 Production is gross (100%) volume for the asset, not Shell's net share, unless it says net. Retail counts are what OpenStreetMap volunteers have mapped, not an official network size.
+Storm impacts are estimates from monthly data, relative to the pre-storm baseline; a dip can have other causes. The benchmark ranks gross production by operator of record, not equity. In the subsea view the well paths are BOEM directional surveys, the seabed is interpolated from well-site water depths, and no geology is drawn.
 Unofficial portfolio project. Not affiliated with, or endorsed by, Shell plc. No Shell logos or proprietary data are used.
 
 TAGS
