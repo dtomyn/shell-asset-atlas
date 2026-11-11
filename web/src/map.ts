@@ -676,6 +676,17 @@ export function createMap(
   });
 }
 
-export function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+export function escapeHtml(v: string | number | null | undefined): string {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+}
+
+/** Returns the URL only when it is an absolute http(s) link, so a data field can never become a `javascript:` link. */
+export function safeUrl(v: string | null | undefined): string | null {
+  if (!v) return null;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+  } catch {
+    return null;
+  }
 }

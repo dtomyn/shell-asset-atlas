@@ -105,7 +105,7 @@ export function buildTour(atlas: Atlas, timelineEnd: number, storms?: StormData 
       idaHub && {
         kicker: 'Hurricane replay',
         title: `${ida.name}, ${fmtMonth(ida.month, true)}`,
-        body: `Hurricane ${ida.name} peaked as a ${STORM_CLASSES[stormClass(ida.peak_kt)].label.toLowerCase()} (${n(ida.peak_kt)} kt), and its centre passed ${n(ida.closest_km)} km from the nearest Shell structure. Against the average of the ${storms.method.baseline_months} months before, ${plural(idaHit.length, 'hub')} deferred an estimated <b>${n(ida.deferred_mboe, 1)} million boe</b> gross. ${hubLabel(idaTop.name)} fell from ${n(idaTop.baseline)} to ${n(idaTop.low)} kboe/d and ${recovery(idaTop, storms.method.recovery * 100)}. This is an estimate from monthly data; a dip can have other causes.`,
+        body: `Hurricane ${escapeHtml(ida.name)} peaked as a ${STORM_CLASSES[stormClass(ida.peak_kt)].label.toLowerCase()} (${n(ida.peak_kt)} kt), and its centre passed ${n(ida.closest_km)} km from the nearest Shell structure. Against the average of the ${storms.method.baseline_months} months before, ${plural(idaHit.length, 'hub')} deferred an estimated <b>${n(ida.deferred_mboe, 1)} million boe</b> gross. ${escapeHtml(hubLabel(idaTop.name))} fell from ${n(idaTop.baseline)} to ${n(idaTop.low)} kboe/d and ${recovery(idaTop, storms.method.recovery * 100)}. This is an estimate from monthly data; a dip can have other causes.`,
         camera: { center: idaHub.geometry.coordinates as [number, number], zoom: 5.9, pitch: 45, bearing: -10 },
         select: idaHub.properties.id,
         storm: ida.id,
@@ -113,7 +113,7 @@ export function buildTour(atlas: Atlas, timelineEnd: number, storms?: StormData 
     deepest && {
       kicker: 'Record depth',
       title: `${deepest.name}: ${n(deepest.water_depth_m)} m of water`,
-      body: `${deepest.name} is the deepest Shell-operated host in the BOEM data. It is ${article(deepest.subtype ?? 'floating platform')} installed in ${deepest.installed ?? '—'} in ${deepest.block}, nearly ${n((deepest.water_depth_m ?? 0) / 1000, 1)} km above the seabed. For comparison, Mars sits in ${n(mars?.water_depth_m)} m.`,
+      body: `${escapeHtml(deepest.name)} is the deepest Shell-operated host in the BOEM data. It is ${escapeHtml(article(deepest.subtype ?? 'floating platform'))} installed in ${escapeHtml(deepest.installed ?? '—')} in ${escapeHtml(deepest.block)}, nearly ${n((deepest.water_depth_m ?? 0) / 1000, 1)} km above the seabed. For comparison, Mars sits in ${n(mars?.water_depth_m)} m.`,
       camera: { center: (atlas.assets.features.find((f) => f.properties.id === deepest.id)?.geometry.coordinates ?? [-94.9, 26.1]) as [number, number], zoom: 8.5, pitch: 60, bearing: 20 },
       select: deepest.id,
     },
@@ -121,7 +121,7 @@ export function buildTour(atlas: Atlas, timelineEnd: number, storms?: StormData 
       diveSum && {
         kicker: 'Below the waterline',
         title: `Under ${diveHub.name}: ${n(diveSum.wells)} wellbores`,
-        body: `${diveHub.name} floats in ${n(diveHub.water_depth_m)} m of water. BOEM's borehole file ties <b>${n(diveSum.wells)} Shell-operated wellbores</b> to this hub, counting each sidetrack, and ${diveSum.surveyed === diveSum.wells ? 'all of them have' : `${n(diveSum.surveyed)} have`} a public directional survey. The deepest ends ${n(diveSum.deepest_tvd_m)} m below sea level, and together they come to about ${n(diveSum.drilled_m / 1000)} km of hole. The view is drawn to true scale. The seabed is interpolated from well-site depths, and no geology is shown.`,
+        body: `${escapeHtml(diveHub.name)} floats in ${n(diveHub.water_depth_m)} m of water. BOEM's borehole file ties <b>${n(diveSum.wells)} Shell-operated wellbores</b> to this hub, counting each sidetrack, and ${diveSum.surveyed === diveSum.wells ? 'all of them have' : `${n(diveSum.surveyed)} have`} a public directional survey. The deepest ends ${n(diveSum.deepest_tvd_m)} m below sea level, and together they come to about ${n(diveSum.drilled_m / 1000)} km of hole. The view is drawn to true scale. The seabed is interpolated from well-site depths, and no geology is shown.`,
         camera: { center: (atlas.assets.features.find((f) => f.properties.id === diveHub.id)?.geometry.coordinates ?? [-94.9, 26.13]) as [number, number], zoom: 9, pitch: 62, bearing: -25 },
         select: diveHub.id,
         dive: diveHub.id,
@@ -130,7 +130,7 @@ export function buildTour(atlas: Atlas, timelineEnd: number, storms?: StormData 
       newest.id !== deepest?.id && {
         kicker: 'Newest hub',
         title: `${newest.name}, installed ${newest.installed}`,
-        body: `${newest.name} is the newest Shell-operated host in the dataset${newestProd ? `. In ${newestProd.month} its field reported ${n(newestProd.boe)} kboe/d gross` : ''}. Its water depth is ${n(newest.water_depth_m)} m.`,
+        body: `${escapeHtml(newest.name)} is the newest Shell-operated host in the dataset${newestProd ? `. In ${escapeHtml(newestProd.month)} its field reported ${n(newestProd.boe)} kboe/d gross` : ''}. Its water depth is ${n(newest.water_depth_m)} m.`,
         camera: { center: (atlas.assets.features.find((f) => f.properties.id === newest.id)?.geometry.coordinates ?? [-94.7, 26.2]) as [number, number], zoom: 8.2, pitch: 55, bearing: -30 },
         select: newest.id,
       },

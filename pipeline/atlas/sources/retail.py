@@ -35,7 +35,16 @@ def _coords(el: dict) -> tuple[float, float] | None:
 
 def _run(query: str) -> list[dict]:
     raw = fetch(OVERPASS, data={"data": query}, timeout=900, expect="json")
-    return json.loads(raw.decode("utf-8"))["elements"]
+    return overpass_elements(json.loads(raw.decode("utf-8")))
+
+
+def overpass_elements(doc: dict) -> list[dict]:
+    """Overpass answers a query that timed out or ran out of memory with HTTP 200, a "remark"
+    and partial (often empty) results. Treat that as a failure so the last good snapshot is kept."""
+    remark = doc.get("remark")
+    if remark and ("error" in remark.lower() or "timed out" in remark.lower()):
+        raise RuntimeError(f"Overpass returned partial results: {remark[:200]}")
+    return doc["elements"]
 
 
 def build() -> SourceResult:

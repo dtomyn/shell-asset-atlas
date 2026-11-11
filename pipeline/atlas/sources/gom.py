@@ -128,14 +128,26 @@ def _parse_platstru(text: str) -> dict[str, dict]:
     return out
 
 
+def production_zip(year: int, *, today: dt.date | None = None) -> bytes | None:
+    """The BOEM OGOR-A file for one year. Only the current year may be missing (it is published
+    part-way through the year); a missing past year would silently zero 12 months of production,
+    so it fails the source instead and the build keeps the last good snapshot."""
+    today = today or dt.date.today()
+    try:
+        return fetch(f"{BASE}/Production/Files/ogora{year}delimit.zip", expect="zip")
+    except NotAvailable:
+        if year >= today.year:
+            log.info("no BOEM production file for %s yet", year)
+            return None
+        raise
+
+
 def _production(result: SourceResult) -> dict[str, Series]:
     series: dict[str, Series] = {}
     this_year = dt.date.today().year
     for year in range(FIRST_YEAR, this_year + 1):
-        try:
-            blob = fetch(f"{BASE}/Production/Files/ogora{year}delimit.zip", expect="zip")
-        except NotAvailable:
-            log.info("no BOEM production file for %s yet", year)
+        blob = production_zip(year)
+        if blob is None:
             continue
         n = 0
         for r in csv.reader(io.StringIO(zip_text(blob))):

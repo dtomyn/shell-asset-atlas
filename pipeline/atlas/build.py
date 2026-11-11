@@ -14,6 +14,7 @@ import argparse
 import datetime as dt
 import json
 import logging
+import os
 import sys
 import traceback
 from dataclasses import asdict
@@ -53,6 +54,37 @@ def load_snapshot(key: str) -> tuple[SourceResult, str] | None:
     return SourceResult(**d, series=series), fetched
 
 
+# --- refresh sanity check --------------------------------------------------------------
+# A publisher that answers with an empty or truncated payload (and HTTP 200) must not replace
+# a good snapshot: the weekly job would commit and deploy it. Sources whose size legitimately
+# swings (the live storm feed is empty outside the season) are exempt.
+SHRINK_EXEMPT = {"nhc_live"}
+SHRINK_LIMIT = 0.5
+
+
+def result_size(r: SourceResult) -> int:
+    """Number of records in a result: features, production series, and list items in ``extra``."""
+    def count(v) -> int:
+        if isinstance(v, list):
+            return len(v)
+        if isinstance(v, dict):
+            return sum(count(x) for x in v.values())
+        return 0
+
+    return len(r.assets) + len(r.areas) + len(r.lines) + len(r.series) + count(r.extra)
+
+
+def check_not_shrunk(r: SourceResult, previous: tuple[SourceResult, str] | None) -> None:
+    if r.key in SHRINK_EXEMPT or previous is None:
+        return
+    old, new = result_size(previous[0]), result_size(r)
+    if old and new < old * SHRINK_LIMIT:
+        raise RuntimeError(
+            f"refresh has {new} records against {old} in the last snapshot; refusing to overwrite it "
+            "(rerun with --allow-shrink if the drop is real)"
+        )
+
+
 # --- production bundle ----------------------------------------------------------------
 def month_range(first: str, last: str) -> list[str]:
     y, m = int(first[:4]), int(first[5:])
@@ -65,10 +97,13 @@ def month_range(first: str, last: str) -> list[str]:
     return out
 
 
+PRODUCTION_UNITS = {"oil": "kbbl/d (oil + condensate + NGL)", "gas": "MMscf/d", "boe": "kboe/d (5.8 Mscf = 1 boe)"}
+
+
 def production_bundle(all_series: list[Series]) -> dict:
     months_all = sorted({m for s in all_series for m in s.months})
     if not months_all:
-        return {"months": [], "series": {}, "totals": {}}
+        return {"months": [], "units": PRODUCTION_UNITS, "latest": {}, "series": {}, "totals": {}}
     months = month_range(months_all[0], months_all[-1])
     idx = {m: i for i, m in enumerate(months)}
     out_series = {}
@@ -111,7 +146,7 @@ def production_bundle(all_series: list[Series]) -> dict:
         t["net"] = [round(v, 1) for v in t["net"]]
     return {
         "months": months,
-        "units": {"oil": "kbbl/d (oil + condensate + NGL)", "gas": "MMscf/d", "boe": "kboe/d (5.8 Mscf = 1 boe)"},
+        "units": PRODUCTION_UNITS,
         "latest": latest_by_region,
         "series": out_series,
         "totals": totals,
@@ -131,6 +166,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--only", nargs="*", choices=list(SOURCES), help="refresh only these sources; use snapshots for the rest")
     ap.add_argument("--offline", action="store_true", help="build purely from snapshots")
+    ap.add_argument(
+        "--allow-shrink",
+        action="store_true",
+        default=os.environ.get("ATLAS_ALLOW_SHRINK") == "1",
+        help="accept a refresh that is much smaller than the last snapshot (after checking it is real)",
+    )
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(levelname)-7s %(name)s: %(message)s")
@@ -144,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 log.info("fetching %s ...", key)
                 r = mod.build()
+                if not args.allow_shrink:
+                    check_not_shrunk(r, load_snapshot(key))
                 save_snapshot(r)
                 results.append(r)
                 status[key] = {"state": "fresh", "fetched_at": now}
@@ -159,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
             status.setdefault(key, {"state": "snapshot"})
             status[key]["fetched_at"] = fetched
         else:
-            status[key] = {"state": "missing", **status.get(key, {})}
+            status[key] = {**status.get(key, {}), "state": "missing"}
 
     assets = [a for r in results for a in r.assets]
     areas = [a for r in results for a in r.areas]

@@ -25,3 +25,6 @@ film/out/timeline*.json
 .vscode/
 .idea/
 .claude/settings.local.json
+
+# Vite dependency pre-bundle cache
+web/.vite/
