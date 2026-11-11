@@ -23,6 +23,10 @@ CACHE_TTL = float(os.environ.get("ATLAS_CACHE_TTL", 7 * 24 * 3600))
 
 _session = requests.Session()
 _session.headers["User-Agent"] = USER_AGENT
+# Responses downloaded by this process. Two adapters that read the same file (the BOEM
+# production files feed both the Shell series and the peer benchmark) share one download,
+# even when the cache lifetime is 0.
+_fetched: set[Path] = set()
 
 
 class NotAvailable(RuntimeError):
@@ -42,15 +46,17 @@ def fetch(
     expect: str | None = None,
     timeout: float = 120,
     retries: int = 4,
+    ttl: float | None = None,
 ) -> bytes:
     """GET (or POST when ``data`` is given) with caching and exponential backoff.
 
     ``expect`` is a substring the Content-Type must contain; this catches portals that
-    answer a missing file with a 200 HTML page.
+    answer a missing file with a 200 HTML page. ``ttl`` overrides the cache lifetime in
+    seconds (0 = always refetch), for feeds that change by the hour.
     """
     key = json.dumps([url, params, data], sort_keys=True)
     path = _cache_path(key, ".bin")
-    if path.exists() and time.time() - path.stat().st_mtime < CACHE_TTL:
+    if path.exists() and (path in _fetched or time.time() - path.stat().st_mtime < (CACHE_TTL if ttl is None else ttl)):
         return path.read_bytes()
 
     last: Exception | None = None
@@ -68,7 +74,43 @@ def fetch(
                 raise NotAvailable(f"{url} returned {ctype!r}, expected {expect!r}")
             CACHE_DIR.mkdir(parents=True, exist_ok=True)
             path.write_bytes(r.content)
+            _fetched.add(path)
             return r.content
+        except NotAvailable:
+            raise
+        except Exception as exc:  # network blips, rate limits
+            last = exc
+            wait = 2 ** attempt * 3
+            log.warning("fetch failed (%s), retrying in %ss", exc, wait)
+            time.sleep(wait)
+    raise RuntimeError(f"giving up on {url}: {last}")
+
+
+def fetch_path(url: str, *, expect: str | None = None, timeout: float = 300, retries: int = 4, ttl: float | None = None) -> Path:
+    """Like :func:`fetch`, for a file too large to hold in memory: the download is streamed
+    into the cache (which is not committed) and the path is returned, so the caller can read
+    it piece by piece."""
+    path = _cache_path(json.dumps([url, None, None], sort_keys=True), ".bin")
+    if path.exists() and (path in _fetched or time.time() - path.stat().st_mtime < (CACHE_TTL if ttl is None else ttl)):
+        return path
+    last: Exception | None = None
+    for attempt in range(retries):
+        try:
+            with _session.get(url, timeout=timeout, stream=True) as r:
+                if r.status_code in (429, 502, 503, 504):
+                    raise requests.HTTPError(f"{r.status_code} from {url}")
+                r.raise_for_status()
+                ctype = r.headers.get("Content-Type", "")
+                if expect and expect not in ctype:
+                    raise NotAvailable(f"{url} returned {ctype!r}, expected {expect!r}")
+                CACHE_DIR.mkdir(parents=True, exist_ok=True)
+                tmp = path.with_suffix(".part")
+                with tmp.open("wb") as out:
+                    for chunk in r.iter_content(1 << 20):
+                        out.write(chunk)
+                tmp.replace(path)
+            _fetched.add(path)
+            return path
         except NotAvailable:
             raise
         except Exception as exc:  # network blips, rate limits

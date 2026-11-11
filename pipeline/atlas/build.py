@@ -19,9 +19,10 @@ import traceback
 from dataclasses import asdict
 from pathlib import Path
 
+from . import peers
 from .geo import line_length_km
 from .model import Series, SourceResult, kboed
-from .sources import flagship, gom, norway, retail, uk
+from .sources import flagship, gom, norway, retail, storms, storms_live, uk, wells
 
 log = logging.getLogger("atlas")
 
@@ -29,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOTS = ROOT / "snapshots"
 DEFAULT_OUT = ROOT.parent / "web" / "public" / "data"
 
-SOURCES = {"boem": gom, "nsta": uk, "sodir": norway, "osm": retail, "curated": flagship}
+SOURCES = {"boem": gom, "nsta": uk, "sodir": norway, "osm": retail, "curated": flagship, "hurdat": storms, "nhc_live": storms_live, "peers": peers, "wells": wells}
 REGIONS = {"gom": "US Gulf of America", "uk": "UK North Sea", "no": "Norway", "global": "Global"}
 
 
@@ -172,6 +173,11 @@ def main(argv: list[str] | None = None) -> int:
 
     prod = production_bundle([s for r in results for s in r.series])
     retail_data = next((r.extra for r in results if r.key == "osm"), {"fuel": [], "ev": []})
+    hurdat = next((r.extra for r in results if r.key == "hurdat"), {})
+    storm_data = storms.bundle(hurdat.get("storms", []), assets, prod, hurdat.get("through"))
+    storm_data["live"] = next((r.extra for r in results if r.key == "nhc_live"), None)
+    peer_data = peers.bundle(next((r.extra for r in results if r.key == "peers"), {}), prod["months"])
+    well_data, subsea = wells.bundle(next((r.extra for r in results if r.key == "wells"), {}), assets)
 
     def latest(key: str, field: str = "gross") -> float | None:
         t = prod["totals"].get(key)
@@ -207,11 +213,15 @@ def main(argv: list[str] | None = None) -> int:
         "pipelines.geojson": write_json(out / "pipelines.geojson", {"type": "FeatureCollection", "features": lines}),
         "production.json": write_json(out / "production.json", prod),
         "retail.json": write_json(out / "retail.json", retail_data),
+        "storms.json": write_json(out / "storms.json", storm_data),
+        "peers.json": write_json(out / "peers.json", peer_data),
+        "wells.json": write_json(out / "wells.json", well_data),
     }
     manifest = {
         "generated_at": now,
         "regions": REGIONS,
         "kpis": kpis,
+        "subsea": subsea,  # hubs with wells below them; the paths are in wells.json, loaded on demand
         "sources": [{**r.meta(), **status.get(r.key, {})} for r in results],
         "missing": [k for k, v in status.items() if v["state"] == "missing"],
         "files": sizes,

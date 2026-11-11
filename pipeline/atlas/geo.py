@@ -71,3 +71,46 @@ def round_geometry(geom: dict, ndigits: int = 4) -> dict:
         return [r(x) for x in c]
 
     return {"type": geom["type"], "coordinates": r(geom["coordinates"])}
+
+
+def metres_per_degree(lat: float) -> tuple[float, float]:
+    """Metres per degree of (longitude, latitude) at a latitude, on the WGS84 ellipsoid."""
+    p = math.radians(lat)
+    return (
+        111412.84 * math.cos(p) - 93.5 * math.cos(3 * p) + 0.118 * math.cos(5 * p),
+        111132.92 - 559.82 * math.cos(2 * p) + 1.175 * math.cos(4 * p) - 0.0023 * math.cos(6 * p),
+    )
+
+
+def _seg_dist3(p: Sequence[float], a: Sequence[float], b: Sequence[float]) -> float:
+    ab = [b[i] - a[i] for i in range(3)]
+    ap = [p[i] - a[i] for i in range(3)]
+    den = sum(c * c for c in ab)
+    t = 0.0 if den == 0 else max(0.0, min(1.0, sum(ap[i] * ab[i] for i in range(3)) / den))
+    return math.dist(p, [a[i] + t * ab[i] for i in range(3)])
+
+
+def simplify_3d(pts: list[tuple[float, float, float]], tol: float, max_points: int | None = None) -> list[tuple[float, float, float]]:
+    """Douglas–Peucker in three dimensions: no dropped point is more than ``tol`` from the
+    simplified path. If ``max_points`` is given the tolerance is doubled until the path fits,
+    so the result may be coarser than ``tol``. The end points are always kept."""
+    if len(pts) <= 2:
+        return list(pts)
+    while True:
+        keep = [False] * len(pts)
+        keep[0] = keep[-1] = True
+        stack = [(0, len(pts) - 1)]
+        while stack:
+            i, j = stack.pop()
+            dmax, idx = 0.0, -1
+            for k in range(i + 1, j):
+                d = _seg_dist3(pts[k], pts[i], pts[j])
+                if d > dmax:
+                    dmax, idx = d, k
+            if dmax > tol and idx > 0:
+                keep[idx] = True
+                stack += [(i, idx), (idx, j)]
+        out = [p for p, k in zip(pts, keep) if k]
+        if max_points is None or len(out) <= max(2, max_points):
+            return out
+        tol *= 2

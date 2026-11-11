@@ -78,6 +78,14 @@ export interface SourceMeta {
   error?: string;
 }
 
+/** A Gulf hub with wells below it. The paths themselves are in wells.json, loaded when a dive opens. */
+export interface SubseaSummary {
+  wells: number;
+  surveyed: number;
+  deepest_tvd_m: number;
+  drilled_m: number;
+}
+
 export interface Manifest {
   generated_at: string;
   regions: Record<Region, string>;
@@ -90,6 +98,8 @@ export interface Manifest {
     ev_sites: number;
     production: Partial<Record<Region, { month: string; operated_gross: number; partner_gross: number | null; net: number | null }>>;
   };
+  /** hub asset id → summary; absent in bundles built before the subsea view */
+  subsea?: Record<string, SubseaSummary>;
   sources: SourceMeta[];
 }
 

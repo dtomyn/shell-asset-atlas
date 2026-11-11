@@ -22,6 +22,7 @@ export class Drawer {
     private onClose: () => void,
     private onSelect: (id: string) => void,
     private onScrub: (idx: number) => void,
+    private onDive?: (id: string) => void,
   ) {
     document.getElementById('drawer-close')!.addEventListener('click', () => this.close());
   }
@@ -111,6 +112,12 @@ export class Drawer {
           .join('')
       : '';
 
+    // Gulf hubs with wells in the bundle can be seen from below (subsea.ts, loaded on demand).
+    const sub = this.onDive ? this.atlas.manifest.subsea?.[p.id] : undefined;
+    const diveHtml = sub
+      ? `<button class="btn dive-btn" data-dive><span><svg viewBox="0 0 24 24"><path d="M12 4v14M6 12l6 6 6-6" /></svg>Dive below</span><small>${fmtNum(sub.wells)} wellbores · deepest ${fmtNum(sub.deepest_tvd_m)} m below sea level</small></button>`
+      : '';
+
     const link = p.url
       ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(SOURCE_LABEL[p.source] ?? p.source)} ↗</a>`
       : escapeHtml(SOURCE_LABEL[p.source] ?? p.source);
@@ -121,12 +128,15 @@ export class Drawer {
       <p class="subtitle">${escapeHtml(kind)}${p.country ? ` · ${escapeHtml(p.country)}` : ''}</p>
       ${p.summary ? `<p class="summary">${escapeHtml(p.summary)}</p>` : ''}
       ${prodHtml}
+      ${diveHtml}
       <dl class="facts">${facts}</dl>
       ${lic}
       ${related ? `<h3>Same production hub</h3><div class="chips">${related}</div>` : ''}
       <p class="source">Source: ${link}${p.curated ? '<br><em>Hand-curated entry. Location is approximate; check the ownership date.</em>' : ''}</p>`;
 
     this.body.querySelectorAll<HTMLButtonElement>('[data-goto]').forEach((b) => b.addEventListener('click', () => this.onSelect(b.dataset.goto!)));
+
+    this.body.querySelector('[data-dive]')?.addEventListener('click', () => this.onDive?.(p.id));
 
     this.chart?.destroy();
     this.chart = null;

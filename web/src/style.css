@@ -309,3 +309,144 @@ body.touring .timeline { left: var(--gutter); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* --- storms: live risk, replay list, hub-by-hub estimate ----------------------------- */
+.storms h2 { display: flex; align-items: center; justify-content: space-between; }
+.storm-toggle { display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11.5px; cursor: pointer; }
+.storm-toggle input { accent-color: var(--accent); margin: 0; }
+.storm-live { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.03); font-size: 12px; }
+.storm-live p { margin: 0; color: #cfd8e3; }
+.storm-live small { display: block; margin-top: 4px; font-size: 10.5px; line-height: 1.35; color: var(--faint); }
+.storm-live i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #80ed99; }
+.storm-live.active { border-color: rgba(255,93,143,.45); background: rgba(255,93,143,.08); }
+.storm-live.active i { background: #ff5d8f; box-shadow: 0 0 0 3px rgba(255,93,143,.25); }
+.storm-live-row + .storm-live-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.storm-live-name { display: block; padding: 0; border: 0; background: none; font-weight: 600; text-align: left; cursor: pointer; }
+.storm-live-name:hover { color: var(--accent); }
+.storm-live-row p { margin-top: 3px; }
+.storm-live-row p b { color: var(--text); }
+.storm-head { display: flex; justify-content: space-between; gap: 8px; margin: 0 2px 4px; font-size: 10.5px; color: var(--faint); }
+.storm-list { display: grid; gap: 2px; max-height: 236px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
+.storm-row { display: grid; grid-template-columns: 8px 1fr auto; column-gap: 8px; align-items: center; padding: 5px 8px 5px 7px; border: 0; border-radius: 6px; background: rgba(255,255,255,.03); cursor: pointer; text-align: left; font-size: 12.5px; transition: background .15s, box-shadow .15s; }
+.storm-row:hover { background: rgba(255,255,255,.1); }
+.storm-row i { width: 8px; height: 8px; border-radius: 50%; transition: box-shadow .2s; }
+.storm-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.storm-row .name em { margin-left: 6px; font-style: normal; font-size: 11px; color: var(--muted); }
+.storm-row b { font-variant-numeric: tabular-nums; }
+.storm-row small { grid-column: 2 / 4; font-size: 11px; color: var(--muted); }
+.storm-row.now i { box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
+.storm-row.on { background: rgba(255,183,3,.12); box-shadow: inset 0 0 0 1px rgba(255,183,3,.4); }
+.storms.replaying .storm-row.on { box-shadow: inset 0 0 0 1px var(--accent), 0 0 14px rgba(255,183,3,.18); }
+.storm-detail { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.03); font-size: 11.5px; line-height: 1.4; color: #cfd8e3; }
+.storm-detail p { margin: 0; }
+.storm-detail ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.storm-detail li + li { margin-top: 5px; }
+.storm-detail li span { display: block; color: var(--text); }
+.storm-detail li em { margin-left: 6px; font-style: normal; color: var(--faint); }
+.storm-detail li small { display: block; font-size: 11px; color: var(--muted); }
+.storm-detail li small b { color: var(--text); }
+.storm-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; font-size: 10.5px; color: var(--muted); }
+.storm-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.storm-legend i { width: 8px; height: 8px; border-radius: 50%; }
+
+/* --- peer benchmark: ranked operators, share over time ------------------------------- */
+.bench { position: fixed; right: var(--gutter); top: var(--gutter); width: 408px; max-height: calc(100vh - var(--tl-h) - var(--gutter) * 3); overflow-y: auto; padding: 18px; z-index: 6; animation: slide-in .35s cubic-bezier(.2,.8,.2,1); scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
+.bench[hidden] { display: none; }
+body.bench-open .race { display: none; }
+.bench .close { position: absolute; top: 12px; right: 12px; }
+.bench-headline { margin: 6px 40px 0 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+.bench-sub { margin: 6px 0 0; font-size: 12.5px; color: var(--jv); }
+.bench .seg { margin-top: 12px; }
+.bench h3 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.bench h3 small { font: 500 11px var(--mono); letter-spacing: 0; text-transform: none; color: var(--accent); }
+.bench h3 .seg { margin: 0; text-transform: none; letter-spacing: 0; }
+.bench h3 .seg button { height: 22px; padding: 0 8px; font-size: 11.5px; }
+.bench-row .bar { opacity: .2; }
+.bench-row.focus-shell .bar, .bench-row.focus-jv .bar { opacity: .34; }
+.bench-row.focus-shell { box-shadow: inset 0 0 0 1px rgba(255,183,3,.45); }
+.bench-row.focus-shell .name { font-weight: 600; color: var(--accent); }
+.bench-row.focus-jv .name { color: var(--jv); }
+.bench-row.others { cursor: default; color: var(--muted); }
+.bench-row.picked { box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); }
+.bench-row b { font-weight: 500; font-size: 12px; }
+.bench-chart { height: 170px; }
+.bench-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.bench-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.bench-legend i { width: 12px; height: 3px; border-radius: 2px; }
+.bench-note { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.45; color: var(--faint); }
+.bench-note b { color: var(--muted); font-weight: 600; }
+@media (max-width: 760px) {
+  .bench { left: var(--gutter); right: var(--gutter); width: auto; top: auto; bottom: calc(var(--tl-h) + var(--gutter) * 2); max-height: 62vh; z-index: 7; }
+}
+
+/* --- subsea view: full-screen 3D scene below a Gulf hub ------------------------------- */
+.dive-btn { width: 100%; height: auto; margin-top: 14px; padding: 9px 12px; justify-content: space-between; gap: 10px; text-align: left; border-color: rgba(76,201,240,.4); background: linear-gradient(135deg, rgba(76,201,240,.18), rgba(76,201,240,.03)); }
+.dive-btn:hover { background: linear-gradient(135deg, rgba(76,201,240,.3), rgba(76,201,240,.08)); }
+.dive-btn span { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: #bfe9fb; white-space: nowrap; }
+.dive-btn svg { fill: none; stroke: currentColor; }
+.dive-btn small { font-size: 11px; font-weight: 400; color: var(--muted); text-align: right; line-height: 1.3; }
+.subsea { position: fixed; inset: 0; z-index: 40; background: #050a12; overflow: hidden; animation: subsea-in .5s ease; }
+@keyframes subsea-in { from { opacity: 0; } }
+.subsea-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: 0; }
+.subsea-labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.subsea-label { position: absolute; left: 0; top: 0; font: 500 10.5px var(--mono); color: rgba(220,235,250,.85); white-space: nowrap; text-shadow: 0 1px 4px #000, 0 0 2px #000; will-change: transform; }
+.subsea-label.tick { translate: 0 -50%; }
+.subsea-label.mark { color: var(--accent); }
+.subsea-label.hub { translate: -50% -100%; font: 600 13px Inter, system-ui, sans-serif; color: var(--accent); }
+.subsea-label.ref { translate: -50% -130%; color: #e9eef5; }
+.subsea-head { position: absolute; top: var(--gutter); left: var(--gutter); width: min(440px, calc(100vw - var(--gutter) * 2)); padding: 16px 18px; }
+.subsea-head .kicker .dot { background: #4cc9f0; }
+.subsea-head h2 { margin: 2px 0; font-size: 22px; letter-spacing: -0.015em; line-height: 1.2; }
+.subsea-head .stat-row { grid-template-columns: 1fr 1fr; margin-top: 12px; }
+.subsea-head .stat span { color: var(--text); }
+.subsea-head .stat:first-child span { color: #4cc9f0; }
+.subsea-scale { margin: 10px 0 0; font-size: 12px; line-height: 1.45; color: #cfd8e3; }
+.subsea-scale b { color: var(--text); }
+.subsea-tools { position: absolute; top: var(--gutter); right: var(--gutter); display: flex; align-items: center; gap: 8px; padding: 6px; white-space: nowrap; }
+.subsea-tools [data-orbit][aria-pressed='true'] svg { animation: spin 4s linear infinite; }
+.subsea-legend { position: absolute; left: var(--gutter); bottom: var(--gutter); width: min(440px, calc(100vw - var(--gutter) * 2)); padding: 12px 14px; }
+.subsea-legend[hidden], .subsea-depth[hidden], .subsea-tip[hidden], .subsea-msg[hidden] { display: none; }
+.subsea-legend h3 { margin: 0 0 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.subsea-keys { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: #cfd8e3; }
+.subsea-keys + .subsea-keys { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.subsea-keys span { display: inline-flex; align-items: center; gap: 6px; }
+.subsea-keys i { flex: none; width: 18px; height: 3px; border-radius: 2px; background: var(--c); }
+.subsea-keys i.dash { background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 8px); }
+.subsea-keys i.thin { height: 1px; opacity: .6; }
+.subsea-keys i.pipe { height: 4px; }
+.subsea-keys em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--faint); }
+.subsea-keys .ramp { flex: 1 1 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 3px 8px; font: 500 10px var(--mono); color: var(--muted); }
+.subsea-keys .ramp b { grid-column: 1 / -1; height: 8px; border-radius: 4px; }
+.subsea-keys .ramp span:nth-child(3) { justify-content: center; }
+.subsea-legend p { margin: 8px 0 0; font-size: 10.5px; line-height: 1.45; color: var(--faint); }
+.subsea-depth { position: absolute; left: 50%; bottom: var(--gutter); transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: rgba(5,10,18,.55); border: 1px solid var(--line); font: 500 11.5px var(--mono); color: rgba(210,228,245,.85); white-space: nowrap; text-align: center; pointer-events: none; }
+.subsea-depth b { color: #fff; }
+.subsea-depth small { margin-left: 8px; color: var(--muted); font-size: 10.5px; }
+.subsea.diving .subsea-depth { border-color: rgba(76,201,240,.5); box-shadow: 0 0 18px rgba(76,201,240,.18); }
+.subsea-tip { position: absolute; display: grid; gap: 2px; max-width: 290px; padding: 8px 10px; border-radius: 9px; background: var(--glass-strong); border: 1px solid var(--line-strong); box-shadow: 0 8px 24px rgba(0,0,0,.5); font-size: 12px; pointer-events: none; z-index: 2; }
+.subsea-tip strong { font-size: 13px; }
+.subsea-tip span { color: #cfd8e3; }
+.subsea-tip em { font-style: normal; font-size: 11px; color: var(--muted); }
+.subsea-msg { position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); margin: 0; max-width: 420px; text-align: center; color: var(--muted); }
+body.subsea-open .tour { z-index: 45; }
+body.subsea-open.touring .subsea-depth { display: none; }
+.toast { z-index: 60; }
+@media (max-width: 1280px) {
+  body.touring .subsea-legend { display: none; }
+}
+@media (max-width: 760px) {
+  .subsea-head { right: var(--gutter); width: auto; padding: 10px 12px; }
+  .subsea-head h2 { font-size: 18px; margin-right: 40px; }
+  .subsea-head .subtitle, .subsea-scale { display: none; }
+  .subsea-head .stat-row { grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+  .subsea-head .stat { padding: 5px 6px; }
+  .subsea-head .stat span { font-size: 13px; }
+  .subsea-head .stat small { font-size: 9px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .subsea-tools { top: auto; bottom: 52px; left: var(--gutter); right: var(--gutter); overflow-x: auto; scrollbar-width: none; }
+  .subsea-tools [data-close] { order: -1; flex: none; }
+  .subsea-legend { display: none; }
+}
+@media (max-width: 760px) {
+  .subsea-depth { font-size: 10.5px; max-width: calc(100vw - var(--gutter) * 2); }
+  .subsea-depth small { display: none; }
+}
