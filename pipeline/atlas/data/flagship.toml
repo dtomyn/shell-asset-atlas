@@ -1,0 +1,287 @@
+# Curated flagship sites outside the three regulator datasets.
+#
+# This is the only hand-maintained file in the pipeline. Everything else comes straight
+# from public regulator / open data. Keep entries conservative:
+#   * coordinates are approximate site locations (±1–2 km), good for a globe, not for navigation
+#   * stake: operated | jv | partner  (as publicly reported; equity changes, so check as_of)
+#   * wikidata: a QID for the item when one exists. The site panel links to it.
+# Divested sites (e.g. Bukom/Singapore refinery, Deer Park, Mobile) are deliberately excluded.
+
+as_of = "2026-11"
+
+[[site]]
+id = "pernis"
+name = "Shell Energy and Chemicals Park Rotterdam (Pernis)"
+kind = "refinery"
+country = "Netherlands"
+lon = 4.390
+lat = 51.885
+stake = "operated"
+summary = "Shell's largest refinery in Europe, integrated with chemicals production in the Port of Rotterdam."
+
+[[site]]
+id = "holland-hydrogen-1"
+name = "Holland Hydrogen 1"
+kind = "hydrogen"
+country = "Netherlands"
+lon = 4.020
+lat = 51.960
+stake = "operated"
+status = "Under construction"
+summary = "200 MW renewable-hydrogen electrolyser on Maasvlakte 2, designed to run on offshore wind from Hollandse Kust Noord and supply Pernis."
+
+[[site]]
+id = "hkn"
+name = "Hollandse Kust Noord (CrossWind)"
+kind = "wind"
+country = "Netherlands"
+lon = 4.251
+lat = 52.715
+stake = "jv"
+wikidata = "Q101627508"
+summary = "759 MW offshore wind farm developed by CrossWind, a Shell–Eneco joint venture."
+
+[[site]]
+id = "moerdijk"
+name = "Shell Moerdijk"
+kind = "chemicals"
+country = "Netherlands"
+lon = 4.556
+lat = 51.681
+stake = "operated"
+wikidata = "Q1982500"
+summary = "Petrochemicals complex producing ethylene, propylene and derivatives."
+
+[[site]]
+id = "etc-amsterdam"
+name = "Energy Transition Campus Amsterdam"
+kind = "research"
+country = "Netherlands"
+lon = 4.902
+lat = 52.389
+stake = "operated"
+summary = "Shell's largest technology centre, focused on low-carbon energy and digital research."
+
+[[site]]
+id = "rheinland"
+name = "Shell Energy and Chemicals Park Rheinland"
+kind = "refinery"
+country = "Germany"
+lon = 6.984
+lat = 50.852
+stake = "operated"
+summary = "Germany's largest refinery site (Godorf and Wesseling), also home to the REFHYNE electrolyser."
+
+[[site]]
+id = "shell-centre"
+name = "Shell Centre (global headquarters)"
+kind = "office"
+country = "United Kingdom"
+lon = -0.117
+lat = 51.504
+stake = "operated"
+wikidata = "Q939044"
+summary = "Shell plc headquarters on London's South Bank."
+
+[[site]]
+id = "nyhamna"
+name = "Nyhamna gas processing plant"
+kind = "gas-plant"
+country = "Norway"
+lon = 6.951
+lat = 62.851
+stake = "partner"
+wikidata = "Q28405448"
+summary = "Onshore plant that processes Ormen Lange gas for export to the UK via Langeled. Gassco operates it, with Shell as technical service provider."
+
+[[site]]
+id = "northern-lights"
+name = "Northern Lights CO₂ terminal"
+kind = "ccs"
+country = "Norway"
+lon = 4.850
+lat = 60.550
+stake = "partner"
+summary = "Open-access carbon transport and storage: a joint venture of Equinor, Shell and TotalEnergies."
+
+[[site]]
+id = "pearl-gtl"
+name = "Pearl GTL"
+kind = "gtl"
+country = "Qatar"
+lon = 51.505
+lat = 25.905
+stake = "operated"
+wikidata = "Q3373844"
+summary = "The world's largest gas-to-liquids plant, at Ras Laffan, developed by Shell with QatarEnergy."
+
+[[site]]
+id = "prelude"
+name = "Prelude FLNG"
+kind = "lng"
+country = "Australia"
+lon = 123.320
+lat = -13.789
+stake = "operated"
+wikidata = "Q7240065"
+summary = "The world's largest floating LNG facility, moored in the Browse Basin about 475 km north-east of Broome."
+
+[[site]]
+id = "qclng"
+name = "Queensland Curtis LNG"
+kind = "lng"
+country = "Australia"
+lon = 151.196
+lat = -23.770
+stake = "operated"
+wikidata = "Q30972400"
+summary = "Coal-seam gas to LNG export terminal on Curtis Island, Gladstone, supplied by Shell's QGC business."
+
+[[site]]
+id = "gorgon"
+name = "Gorgon LNG"
+kind = "lng"
+country = "Australia"
+lon = 115.410
+lat = -20.790
+stake = "partner"
+wikidata = "Q1538230"
+summary = "LNG and domestic gas project on Barrow Island. Chevron operates it, with Shell as a partner."
+
+[[site]]
+id = "lng-canada"
+name = "LNG Canada"
+kind = "lng"
+country = "Canada"
+lon = -128.684
+lat = 54.023
+stake = "jv"
+wikidata = "Q60746968"
+summary = "Canada's first large-scale LNG export terminal at Kitimat, BC. Shell is the largest shareholder."
+
+[[site]]
+id = "scotford"
+name = "Scotford Refinery & Chemicals"
+kind = "refinery"
+country = "Canada"
+lon = -113.100
+lat = 53.790
+stake = "operated"
+summary = "Refinery and chemicals plant near Fort Saskatchewan, Alberta."
+
+[[site]]
+id = "monaca"
+name = "Shell Polymers Monaca"
+kind = "chemicals"
+country = "United States"
+lon = -80.336
+lat = 40.669
+stake = "operated"
+wikidata = "Q24886744"
+summary = "Ethane cracker and polyethylene complex in Pennsylvania, fed by Appalachian shale gas."
+
+[[site]]
+id = "norco"
+name = "Shell Norco Energy & Chemicals Park"
+kind = "refinery"
+country = "United States"
+lon = -90.405
+lat = 29.998
+stake = "operated"
+summary = "Integrated refinery and chemicals site on the Mississippi River, Louisiana."
+
+[[site]]
+id = "nlng"
+name = "Nigeria LNG (Bonny Island)"
+kind = "lng"
+country = "Nigeria"
+lon = 7.153
+lat = 4.426
+stake = "partner"
+wikidata = "Q7032809"
+summary = "Multi-train LNG export plant on Bonny Island. Shell holds a minority stake."
+
+[[site]]
+id = "bonga"
+name = "Bonga FPSO"
+kind = "fpso"
+country = "Nigeria"
+lon = 4.600
+lat = 4.550
+stake = "operated"
+summary = "Nigeria's first deepwater development, about 120 km offshore in ~1,000 m of water, operated by Shell's SNEPCo."
+
+[[site]]
+id = "brunei-lng"
+name = "Brunei LNG"
+kind = "lng"
+country = "Brunei"
+lon = 114.462
+lat = 4.669
+stake = "partner"
+wikidata = "Q4978918"
+summary = "One of the world's longest-running LNG plants (since 1972), at Lumut."
+
+[[site]]
+id = "oman-lng"
+name = "Oman LNG"
+kind = "lng"
+country = "Oman"
+lon = 59.370
+lat = 22.700
+stake = "partner"
+wikidata = "Q3503110"
+summary = "LNG plant at Qalhat near Sur. Shell is the largest private shareholder."
+
+[[site]]
+id = "karachaganak"
+name = "Karachaganak"
+kind = "field"
+country = "Kazakhstan"
+lon = 53.211
+lat = 51.353
+stake = "partner"
+wikidata = "Q1523920"
+summary = "Giant gas-condensate field in north-west Kazakhstan, jointly operated by Shell and Eni."
+
+[[site]]
+id = "kashagan"
+name = "Kashagan"
+kind = "field"
+country = "Kazakhstan"
+lon = 52.454
+lat = 46.636
+stake = "partner"
+wikidata = "Q1734853"
+summary = "Super-giant offshore oil field in the North Caspian Sea, developed by the NCOC consortium."
+
+[[site]]
+id = "tupi"
+name = "Tupi (Lula)"
+kind = "field"
+country = "Brazil"
+lon = -43.500
+lat = -25.500
+stake = "partner"
+wikidata = "Q943055"
+summary = "Pre-salt super-giant in the Santos Basin. Petrobras operates it, with Shell as a major partner."
+
+[[site]]
+id = "mero"
+name = "Mero"
+kind = "field"
+country = "Brazil"
+lon = -42.400
+lat = -24.600
+stake = "partner"
+summary = "Pre-salt field in the Libra area of the Santos Basin, produced through multiple FPSOs."
+
+[[site]]
+id = "vaca-muerta"
+name = "Vaca Muerta (Shell Argentina)"
+kind = "field"
+country = "Argentina"
+lon = -69.200
+lat = -38.300
+stake = "operated"
+summary = "Unconventional shale-oil blocks in Neuquén operated by Shell Argentina."

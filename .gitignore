@@ -1,0 +1,10 @@
+node_modules/
+web/dist/
+pipeline/.cache/
+pipeline/.venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+Thumbs.db

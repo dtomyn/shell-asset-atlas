@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Shell Asset Atlas</title>
+    <meta name="description" content="An unofficial, open-data 3D atlas of Shell's operated assets, pipelines, production and retail network, built entirely from public regulator data." />
+    <meta name="theme-color" content="#070a0f" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23ffb703' stroke-width='3'/%3E%3Cpath d='M3 16h26M16 3c-5 4-5 22 0 26M16 3c5 4 5 22 0 26' stroke='%23ffb703' stroke-width='2' fill='none'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="map" aria-label="Interactive globe of Shell assets"></div>
+
+    <header class="brand glass">
+      <div class="brand-row">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" /><path d="M3 16h26M16 3c-5 4-5 22 0 26M16 3c5 4 5 22 0 26" /></svg>
+        <div>
+          <h1>Shell Asset Atlas</h1>
+          <p class="sub">Unofficial · built entirely from public data</p>
+        </div>
+        <button class="icon-btn" id="panel-toggle" aria-label="Toggle panel" title="Toggle panel">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input id="search" type="search" placeholder="Search assets, fields, countries…" autocomplete="off" spellcheck="false" />
+        <kbd>/</kbd>
+        <ul id="search-results" role="listbox" hidden></ul>
+      </div>
+    </header>
+
+    <aside class="panel glass" id="panel">
+      <section class="kpis" id="kpis"></section>
+      <section>
+        <h2>Layers</h2>
+        <div id="layers" class="layers"></div>
+      </section>
+      <section>
+        <h2>Stake</h2>
+        <div id="stakes" class="chips"></div>
+      </section>
+      <section>
+        <h2>Fly to</h2>
+        <div id="regions" class="chips"></div>
+      </section>
+      <section class="panel-actions">
+        <button class="btn primary" id="tour-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>Guided tour</button>
+        <button class="btn" id="about-btn">Data &amp; method</button>
+      </section>
+    </aside>
+
+    <aside class="drawer glass" id="drawer" hidden>
+      <button class="icon-btn close" id="drawer-close" aria-label="Close details">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+      <div id="drawer-body"></div>
+    </aside>
+
+    <footer class="timeline glass" id="timeline">
+      <button class="icon-btn play" id="play" aria-label="Play production timeline" title="Play (space)">
+        <svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z" /></svg>
+        <svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zM13 5h4v14h-4z" /></svg>
+      </button>
+      <div class="tl-main">
+        <div class="tl-head">
+          <span class="tl-month" id="tl-month">—</span>
+          <span class="tl-total" id="tl-total"></span>
+          <span class="tl-legend" id="tl-legend"></span>
+        </div>
+        <div class="tl-chart" id="tl-chart"></div>
+      </div>
+    </footer>
+
+    <div class="tour glass" id="tour" hidden>
+      <div class="tour-progress" id="tour-progress"></div>
+      <p class="tour-kicker" id="tour-kicker"></p>
+      <h3 id="tour-title"></h3>
+      <p id="tour-body"></p>
+      <div class="tour-nav">
+        <button class="btn ghost" id="tour-exit">Exit</button>
+        <span class="spacer"></span>
+        <button class="btn" id="tour-prev">Back</button>
+        <button class="btn primary" id="tour-next">Next</button>
+      </div>
+    </div>
+
+    <dialog class="about glass" id="about"></dialog>
+    <div class="toast" id="toast" hidden></div>
+    <div class="loader" id="loader"><div class="ring"></div><p>Loading public datasets…</p></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
