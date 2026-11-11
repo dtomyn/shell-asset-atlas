@@ -14,6 +14,7 @@ film/out/*.mp4
 film/out/*.wav
 film/out/vo/
 film/out/failed.jpg
+film/out/storyboard-failed.html
 film/out/render.log
 film/out/timeline*.json
 

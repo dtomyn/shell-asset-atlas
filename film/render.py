@@ -5,7 +5,8 @@ the built app, opens it in headless Edge with the page's clock paused, and steps
 frame at a time while it moves a cursor over the real controls. Narration is voiced first and its
 length sets the timing, so changing a line retimes the picture.
 
-  render.py --storyboard    Storyboard page, script, captions, thumbnail and YouTube text. About 2 minutes.
+  render.py --storyboard    Storyboard page, script, captions, thumbnail and YouTube text. About 15 minutes.
+                            Add --fps 10 for a rough pass in about 5, to check a scene still runs.
   render.py --preview       Quick 960x540 video to check timing and sound.
   render.py                 The 1080p film and all of the above. About an hour and a half.
   render.py --remix         Rebuilds only the sound on the film already rendered. Under a minute.
@@ -110,6 +111,8 @@ class Film:
         self.url = url
         self.voice = Voice()
         self.t = 0.0          # film time in ms
+        self.app_t = 0.0      # the page's time in ms: film time, except where speed() slows the app down
+        self.rate = 1.0
         self.ticked = 0       # whole ms the page's clock has been advanced
         self.frames = 0
         self.voice_end = 0.0
@@ -129,7 +132,8 @@ class Film:
 
     def step(self):
         self.t += self.frame_ms
-        ticks = round(self.t) - self.ticked
+        self.app_t += self.frame_ms * self.rate
+        ticks = round(self.app_t) - self.ticked
         self.ticked += ticks
         self.page.clock.run_for(ticks)
         ready = self.page.evaluate("t => __film.tick(t)", self.t)
@@ -150,6 +154,27 @@ class Film:
     def until(self, at):
         self.run(at - self.t)
 
+    def speed(self, rate=1.0):
+        """Runs the app's own clock slower (or faster) than the film: 0.5 shows the app in half-speed slow motion.
+        Everything the app times (camera flights, playback, the subsea dive) follows. The cursor, cards and narration don't."""
+        self.rate = rate
+
+    def wait_real(self, expression, what, limit=90):
+        """Waits in real time, with the film's clock stopped, for something the app downloads (a lazy chunk, a data file).
+        No film time passes, so however long the download takes, the film is the same."""
+        deadline = time.time() + limit
+        while not self.page.evaluate(expression):
+            if time.time() > deadline:
+                raise SystemExit(f"{what} never happened ({expression})")
+            time.sleep(0.05)
+
+    def restart(self, query, ready="true"):
+        """A cut: loads the app afresh behind the curtain and whatever card is up, and stops its clock at the moment it
+        reveals itself, as open_app does. The curtain must be fully closed first, so the cut can't be seen."""
+        self.page.evaluate("__film.keep()")
+        self.page.goto(f"{self.base}/?film={query}", wait_until="commit")
+        wait_for_app(self.page, self.errors, ready)
+
     def wait_voice(self, pad=450):
         """Runs until the narration so far has been said."""
         self.until(self.voice_end + pad)
@@ -159,6 +184,14 @@ class Film:
         while text not in (self.page.text_content(selector) or ""):
             if self.t > end:
                 raise SystemExit(f"{selector} never read {text!r}")
+            self.step()
+
+    def wait_for(self, expression, what, limit_ms=60000):
+        """Runs the film until something is true in the page."""
+        end = self.t + limit_ms
+        while not self.page.evaluate(expression):
+            if self.t > end:
+                raise SystemExit(f"{what} never happened ({expression})")
             self.step()
 
     # story
@@ -178,6 +211,13 @@ class Film:
     def board(self, title, why, thumb=False):
         """Keeps this moment as a storyboard frame."""
         self.settle(6)
+        if not self.encoder:
+            # A storyboard run takes no pictures between boards, so the map's workers may still be
+            # catching up with what the app last gave them (a storm's position, a month's towers).
+            deadline = time.time() + 3
+            while not self.page.evaluate("__film.drawn()") and time.time() < deadline:
+                time.sleep(0.05)
+            self.page.evaluate("__film.redraw()")
         shot = self.page.screenshot(type="jpeg", quality=62, scale="css")
         self.boards.append({"title": title, "why": why, "at": self.t, "scene": self.chapters[-1]["id"], "image": base64.b64encode(shot).decode()})
         if thumb:
@@ -185,6 +225,10 @@ class Film:
 
     def card(self, body=None, kind="scrim"):
         self.page.evaluate("([h, k]) => __film.card(h, k)", [body, kind])
+
+    def curtain(self, on):
+        """Fades the whole picture to black, or back. Cards sit in front of the curtain."""
+        self.page.evaluate("on => __film.curtain(on)", on)
 
     def js(self, expression, arg=None):
         return self.page.evaluate(expression, arg)
@@ -217,7 +261,7 @@ class Film:
             need = self.page.evaluate("s => __film.scrollNeed(s)", selector)
             if not need:
                 return
-            if abs(self.cursor[0] - need["x"]) > 100 or abs(self.cursor[1] - need["y"]) > 150:
+            if abs(self.cursor[0] - need["x"]) > 2 or abs(self.cursor[1] - need["y"]) > 150:
                 self.move((need["x"], need["y"]), 550)
             self.wheel(need["dy"], 500 + min(700, abs(need["dy"]) * 2))
             self.run(120)
@@ -242,6 +286,16 @@ class Film:
         for dx in (1.5, 0):
             self.page.mouse.move(x + dx, y)
             self.step()
+
+    def drag(self, start, end, ms=1500):
+        """Presses at one point, travels to another and lets go: turns the subsea camera, as a hand would."""
+        self.move(start, 600)
+        self.run(120)
+        self.page.mouse.down()
+        self.run(80)
+        self.move(end, ms)
+        self.run(80)
+        self.page.mouse.up()
 
     def press(self, hold=100):
         self.page.mouse.down()
@@ -419,16 +473,17 @@ def write_youtube_text(timeline, facts, url):
 A decade of offshore production on one globe, from public records | Shell Asset Atlas (unofficial)
 
 DESCRIPTION
-Oil and gas operators report what they produce to public regulators every month. Shell Asset Atlas puts those records on a 3D globe: {facts['assets']} installations and sites, {facts['fields']} fields, {facts['pipeline_km']:,} km of pipelines and a production history you can replay month by month.
+Oil and gas operators report what they produce to public regulators every month. Shell Asset Atlas puts those records on a 3D globe: {facts['assets']} installations and sites, {facts['fields']} fields, {facts['pipeline_km']:,} km of pipelines and a production history you can replay month by month. It replays Gulf hurricanes over that history, ranks Shell against every other operator the regulators publish, and dives below a platform to its surveyed well paths, drawn to scale.
 
 Try it yourself: {url or '[add the link]'}
 
-Everything in this video is the real application, filmed frame by frame, with the cursor pressing the real controls. The narration uses a synthetic voice (Kokoro). The music is synthesized.
+Everything in this video is the real application, filmed frame by frame, with the cursor pressing the real controls. The hurricane replay and the dive are shown slowed down. The narration uses a synthetic voice (Kokoro). The music is synthesized.
 
 {chapters}
 
-Sources: US Bureau of Ocean Energy Management (BOEM / BSEE Data Center), North Sea Transition Authority (Open Government Licence v3.0), Norwegian Offshore Directorate (NLOD 2.0), OpenStreetMap contributors (ODbL), NASA EOSDIS GIBS imagery, CARTO basemap. Data built {facts['built']}.
+Sources: US Bureau of Ocean Energy Management (BOEM / BSEE Data Center), North Sea Transition Authority (Open Government Licence v3.0), Norwegian Offshore Directorate (NLOD 2.0), NOAA National Hurricane Center, OpenStreetMap contributors (ODbL), NASA EOSDIS GIBS imagery, CARTO basemap. Data built {facts['built']}.
 Production is gross (100%) volume for the asset, not Shell's net share, unless it says net. Retail counts are what OpenStreetMap volunteers have mapped, not an official network size.
+Storm impacts are estimates from monthly data, relative to the pre-storm baseline; a dip can have other causes. The benchmark ranks gross production by operator of record, not equity. In the subsea view the well paths are BOEM directional surveys, the seabed is interpolated from well-site water depths, and no geology is drawn.
 Unofficial portfolio project. Not affiliated with, or endorsed by, Shell plc. No Shell logos or proprietary data are used.
 
 TAGS
@@ -463,7 +518,7 @@ figcaption time { color: var(--accent); font-variant-numeric: tabular-nums; }
 """
 
 
-def write_storyboard(timeline, boards, facts):
+def write_storyboard(timeline, boards, facts, path=None):
     parts = []
     for chapter in timeline["chapters"]:
         figures = "".join(
@@ -487,7 +542,7 @@ def write_storyboard(timeline, boards, facts):
         f"Numbers come from the data built {html.escape(facts['built'])}.</p>"
         "<p class=\"lede\">Unofficial portfolio project. Not affiliated with, or endorsed by, Shell plc. The narration uses a synthetic voice.</p>"
         + "".join(parts) + "</main></body></html>")
-    path = OUT / "storyboard.html"
+    path = path or OUT / "storyboard.html"
     path.write_text(page, encoding="utf-8")
     print("wrote", path, round(path.stat().st_size / 1e6, 1), "MB", flush=True)
 
@@ -506,15 +561,33 @@ def serve():
     return server
 
 
-def open_app(playwright, port, scale):
-    """Loads the app once to warm the browser's cache, then again with the clock stopped at the moment the app reveals itself."""
+def wait_for_app(page, errors, ready="true"):
+    """Runs the page's clock in small steps until the app hides its loader, then waits with the clock stopped for `ready`."""
+    deadline = time.time() + 90
+    # The app hides its loader and starts its fly-in from space in the same breath. The film starts there.
+    while not page.evaluate("!!window.__atlas && !!window.__film && !!document.querySelector('#loader.done') && document.fonts.status === 'loaded'"):
+        if time.time() > deadline:
+            raise SystemExit(f"the app did not start: {errors}")
+        page.clock.run_for(20)
+        time.sleep(0.02)
+    while not page.evaluate(ready):
+        if time.time() > deadline:
+            raise SystemExit(f"the app started but never reached {ready}: {errors}")
+        time.sleep(0.05)
+
+
+def open_app(playwright, port, scale, start="", ready="true"):
+    """Loads the app once to warm the browser's cache, then again with the clock stopped at the moment the app reveals itself.
+    `start` is a link into the app (its own URL hash) for the film to open on, and `ready` is what must be true before the first frame."""
     browser = playwright.chromium.launch(channel="msedge", headless=True, args=["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist", "--disable-smooth-scrolling"])
     context = browser.new_context(viewport={"width": LAYOUT[0], "height": LAYOUT[1]}, device_scale_factor=scale)
-    address = f"http://127.0.0.1:{port}/?film"
+    address = f"http://127.0.0.1:{port}/?film{start}"
     warm = context.new_page()
     warm.goto(address)
     warm.wait_for_function("window.__atlas && !document.getElementById('loader')", timeout=90000)
     warm.wait_for_timeout(6000)
+    if ready != "true":
+        warm.wait_for_function(ready, timeout=90000)
     warm.close()
 
     page = context.new_page()
@@ -524,13 +597,7 @@ def open_app(playwright, port, scale):
     page.clock.install(time=CLOCK_START)
     page.goto(address, wait_until="commit")
     page.clock.pause_at(CLOCK_START + datetime.timedelta(seconds=20))
-    deadline = time.time() + 90
-    # The app hides its loader and starts its fly-in from space in the same breath. The film starts there.
-    while not page.evaluate("!!window.__atlas && !!document.querySelector('#loader.done') && document.fonts.status === 'loaded'"):
-        if time.time() > deadline:
-            raise SystemExit(f"the app did not start: {errors}")
-        page.clock.run_for(20)
-        time.sleep(0.02)
+    wait_for_app(page, errors, ready)
     return browser, page, errors
 
 
@@ -569,7 +636,7 @@ def main():
     fps = 24 if args.preview else args.fps
 
     with sync_playwright() as playwright:
-        browser, page, errors = open_app(playwright, server.server_address[1], scale)
+        browser, page, errors = open_app(playwright, server.server_address[1], scale, *scenes.start(facts))
         encoder = None
         if draw:
             encoder = subprocess.Popen(
@@ -581,6 +648,7 @@ def main():
                 stdin=subprocess.PIPE,
             )
         film = Film(page, fps, encoder, 70 if args.preview else 94, 0.4 if args.preview else 2.0, args.url)
+        film.base, film.errors = f"http://127.0.0.1:{server.server_address[1]}", errors
         try:
             scenes.play(film, facts)
         except BaseException:
@@ -590,6 +658,8 @@ def main():
             print("under cursor:", page.evaluate("([x, y]) => document.elementsFromPoint(x, y).slice(0, 4).map(e => e.tagName + '#' + e.id + '.' + e.className)", list(film.cursor)), flush=True)
             if encoder:
                 encoder.stdin.close()
+            else:
+                write_storyboard(film.timeline(), film.boards, facts, OUT / "storyboard-failed.html")  # the frames up to where it stopped
             raise
         timeline = film.timeline()
         browser.close()

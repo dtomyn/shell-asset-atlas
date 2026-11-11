@@ -4,13 +4,17 @@ import { KIND_LABEL, SEGMENTS, STAKE_LABEL, loadAtlas, segmentOf, type AssetProp
 import { Drawer } from './drawer';
 import { hud, starfield } from './fx';
 import { COLOR_MODES, createMap, escapeHtml, type Basemap, type ColorMode, type LayerKey, type MapController } from './map';
+import { Benchmark, loadPeers, type PeerMetric } from './peers';
 import { Race } from './race';
+import { Storms, loadStorms } from './storms';
+import type { SubseaHandle } from './subsea';
 import { buildTour, type TourStop } from './tour';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const REGION_COLORS: Record<string, string> = { gom: '#ffb703', uk: '#ff8c42', no: '#4cc9f0' };
 const REGION_SHORT: Record<string, string> = { gom: 'US Gulf', uk: 'UK', no: 'Norway' };
+const PLAY_MS = 140; // one timeline month per tick
 
 async function boot() {
   let atlas: Atlas;
@@ -39,9 +43,11 @@ async function boot() {
     basemap: 'dark' as Basemap,
     color: 'segment' as ColorMode,
     hex: false,
+    storms: true,
   };
 
   let ctrl: MapController;
+  let bench: Benchmark | null = null;
   const drawer = new Drawer(
     atlas,
     () => {
@@ -51,12 +57,14 @@ async function boot() {
     },
     (id) => selectById(id, true),
     (idx) => setMonth(Math.min(idx, endIdx)),
+    (id) => openDive(id),
   );
 
   ctrl = await createMap('map', atlas, (props, kind, raw) => {
     if (kind === 'pipeline' && raw) {
       state.selected = null;
       ctrl.select(null);
+      bench?.close();
       drawer.showPipeline(raw);
       return;
     }
@@ -73,6 +81,78 @@ async function boot() {
   starfield($('stars'), map);
   hud($('hud'), map);
   const race = new Race($('race-rows'), atlas, ctrl.seriesOwner, 8, (id) => selectById(id, true));
+  // Storm replay and live storm risk: an optional layer, absent if storms.json is.
+  const stormData = await loadStorms();
+  const storms = stormData
+    ? new Storms(map, atlas, stormData, $('storms'), {
+        endIdx,
+        setMonth: (i) => setMonth(i),
+        stopPlay: () => stopPlay(),
+        onToggle: (on) => {
+          state.storms = on;
+          writeHashSoon();
+        },
+      })
+    : null;
+  // Peer benchmark: an optional panel, absent if peers.json is.
+  const peerData = await loadPeers();
+  if (peerData) {
+    bench = new Benchmark($('bench'), peerData, {
+      endIdx,
+      setMonth: (i) => setMonth(i),
+      stopPlay: () => stopPlay(),
+      onChange: () => {
+        $('bench-btn').setAttribute('aria-pressed', String(!!bench?.isOpen));
+        writeHashSoon();
+      },
+    });
+    $('bench-btn').hidden = false;
+  }
+  const toggleBench = () => {
+    if (!bench) return;
+    if (bench.isOpen) return bench.close();
+    drawer.close(); // the two share the right-hand side
+    bench.open();
+  };
+  $('bench-btn').addEventListener('click', toggleBench);
+
+  // --- subsea view ---------------------------------------------------------------------
+  // "Below the waterline": a full-screen 3D view under a Gulf hub. The module, three.js and
+  // wells.json are only downloaded when a dive is first opened.
+  const subseaHubs = atlas.manifest.subsea ?? {};
+  let dive: { id: string; handle: Promise<SubseaHandle | null> } | null = null;
+  function openDive(id: string) {
+    if (!subseaHubs[id] || dive?.id === id) return;
+    closeDive();
+    stopPlay();
+    ctrl.stopSpin();
+    ctrl.setOrbit(false);
+    document.body.classList.add('subsea-open');
+    const mine: NonNullable<typeof dive> = {
+      id,
+      handle: import('./subsea')
+        .then((mod) => mod.openSubsea({ hubId: id, atlas, onClose: () => dive === mine && diveClosed() }))
+        .catch((e) => {
+          console.error(e);
+          if (dive === mine) diveClosed();
+          toast('The subsea view could not be loaded');
+          return null;
+        }),
+    };
+    dive = mine;
+    writeHashSoon();
+  }
+  function diveClosed() {
+    dive = null;
+    document.body.classList.remove('subsea-open');
+    writeHashSoon();
+  }
+  function closeDive() {
+    const d = dive;
+    if (!d) return;
+    diveClosed();
+    void d.handle.then((h) => h?.close());
+  }
 
   // --- KPIs ----------------------------------------------------------------------------
   const k = atlas.manifest.kpis;
@@ -250,6 +330,8 @@ async function boot() {
   function setMonth(i: number) {
     state.month = Math.max(0, Math.min(endIdx, i));
     ctrl.setMonth(state.month);
+    storms?.setMonth(state.month, state.playing ? PLAY_MS : undefined);
+    bench?.setMonth(state.month);
     tl.setCursor(state.month);
     drawer.setCursor(state.month);
     $('tl-month').textContent = fmtMonth(P.months[state.month], true);
@@ -262,6 +344,7 @@ async function boot() {
 
   let timer = 0;
   function startPlay() {
+    storms?.stopReplay();
     state.playing = true;
     document.body.classList.add('playing');
     ctrl.stopSpin();
@@ -269,9 +352,10 @@ async function boot() {
     timer = window.setInterval(() => {
       if (state.month >= endIdx) return stopPlay();
       setMonth(state.month + 1);
-    }, 140);
+    }, PLAY_MS);
   }
   function stopPlay() {
+    storms?.stopReplay();
     state.playing = false;
     document.body.classList.remove('playing');
     clearInterval(timer);
@@ -285,6 +369,7 @@ async function boot() {
   ];
 
   function select(p: AssetProps, fly: boolean) {
+    bench?.close();
     state.selected = p.id;
     ctrl.select(p.id);
     drawer.show(p, state.month);
@@ -368,6 +453,9 @@ async function boot() {
   let stops: TourStop[] = [];
   let stop = 0;
   let panelWasOpen = false;
+  let tourMovedTime = false;
+  let tourOpenedBench = false;
+  let tourDiveTimer = 0;
   function showStop(i: number) {
     stop = Math.max(0, Math.min(stops.length - 1, i));
     const s = stops[stop];
@@ -385,9 +473,30 @@ async function boot() {
     }
     // Keep the subject clear of the tour card (bottom centre) and the drawer (right).
     const mobile = window.innerWidth < 760;
-    const padding = mobile ? { top: 120, bottom: 300, left: 0, right: 0 } : { top: 40, bottom: 300, left: 0, right: s.select ? 420 : 0 };
+    const padding = mobile ? { top: 120, bottom: 300, left: 0, right: 0 } : { top: 40, bottom: 300, left: 0, right: s.select || s.bench ? 420 : 0 };
     map.flyTo({ ...s.camera, padding, duration: 3800, curve: 1.6, essential: true });
-    ctrl.setOrbit(!!s.select);
+    // A storm stop replays its months on the timeline; leaving it returns to the latest month.
+    storms?.stopReplay();
+    if (s.storm && storms) {
+      storms.play(s.storm, { fly: false });
+      tourMovedTime = true;
+    } else if (tourMovedTime) {
+      setMonth(endIdx);
+      tourMovedTime = false;
+    }
+    // A benchmark stop opens the panel on its basin; leaving it closes the panel again.
+    if (s.bench && bench?.has(s.bench) && !mobile) {
+      tourOpenedBench ||= !bench.isOpen;
+      bench.open(s.bench);
+    } else if (tourOpenedBench) {
+      bench?.close();
+      tourOpenedBench = false;
+    }
+    // A dive stop opens the subsea view once the camera has arrived; leaving it closes the view.
+    clearTimeout(tourDiveTimer);
+    closeDive();
+    if (s.dive) tourDiveTimer = window.setTimeout(() => openDive(s.dive!), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 3200);
+    ctrl.setOrbit(!!s.select && !s.dive);
     armAuto();
     if (s.select) {
       const hit = everything.find((e) => e.p.id === s.select);
@@ -399,6 +508,7 @@ async function boot() {
     } else drawer.close();
   }
   const AUTO_MS = 11000;
+  const DIVE_STOP_MS = 19000; // long enough for the flight and the whole descent
   let auto = false;
   let autoTimer = 0;
   function armAuto() {
@@ -406,9 +516,10 @@ async function boot() {
     tourEl.classList.remove('auto');
     if (!auto || tourEl.hidden) return;
     void tourEl.offsetWidth; // restart the progress animation
-    tourEl.style.setProperty('--auto-ms', `${AUTO_MS}ms`);
+    const ms = stops[stop]?.dive ? DIVE_STOP_MS : AUTO_MS;
+    tourEl.style.setProperty('--auto-ms', `${ms}ms`);
     tourEl.classList.add('auto');
-    autoTimer = window.setTimeout(() => (stop === stops.length - 1 ? setAuto(false) : showStop(stop + 1)), AUTO_MS);
+    autoTimer = window.setTimeout(() => (stop === stops.length - 1 ? setAuto(false) : showStop(stop + 1)), ms);
   }
   function setAuto(on: boolean) {
     auto = on;
@@ -418,8 +529,9 @@ async function boot() {
   }
   $('tour-auto').addEventListener('click', () => setAuto(!auto));
   function startTour() {
-    stops = buildTour(atlas, endIdx);
+    stops = buildTour(atlas, endIdx, stormData, peerData);
     stopPlay();
+    bench?.close();
     ctrl.stopSpin();
     document.body.classList.add('touring');
     panelWasOpen = document.body.classList.contains('panel-open');
@@ -431,6 +543,12 @@ async function boot() {
     map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 600 });
     if (panelWasOpen) document.body.classList.add('panel-open');
     tourEl.hidden = true;
+    storms?.stopReplay();
+    tourMovedTime = false;
+    clearTimeout(tourDiveTimer);
+    closeDive();
+    if (tourOpenedBench) bench?.close();
+    tourOpenedBench = false;
     document.body.classList.remove('touring');
     setAuto(false);
     ctrl.setOrbit(false);
@@ -454,6 +572,12 @@ async function boot() {
   // --- keyboard ------------------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     const typing = (e.target as HTMLElement).matches('input, textarea');
+    if (dive) {
+      // The subsea view covers the globe: Esc closes it, the tour can still be stepped, nothing else applies.
+      if (e.key === 'Escape') closeDive();
+      else if (!tourEl.hidden && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) showStop(stop + (e.key === 'ArrowRight' ? 1 : -1));
+      return;
+    }
     if (e.key === '/' && !typing) {
       e.preventDefault();
       input.focus();
@@ -462,6 +586,7 @@ async function boot() {
       state.playing ? stopPlay() : startPlay();
     } else if (e.key === 'Escape') {
       if (!tourEl.hidden) endTour();
+      else if (bench?.isOpen) bench.close();
       else drawer.close();
     } else if (!typing && !tourEl.hidden && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
       showStop(stop + (e.key === 'ArrowRight' ? 1 : -1));
@@ -473,6 +598,7 @@ async function boot() {
     } else if (e.key.toLowerCase() === 't' && tourEl.hidden) startTour();
     else if (e.key.toLowerCase() === 'o') toggleOrbit();
     else if (e.key.toLowerCase() === 'f') toggleFullscreen();
+    else if (e.key.toLowerCase() === 'b') toggleBench();
   });
 
   // --- URL hash (shareable deep links) -------------------------------------------------
@@ -485,6 +611,9 @@ async function boot() {
     if (state.basemap !== 'dark') params.set('b', state.basemap);
     if (state.color !== 'segment') params.set('m', state.color);
     if (state.hex) params.set('x', '1');
+    if (!state.storms) params.set('s', '0');
+    if (bench?.isOpen) params.set('p', bench.metric === 'share' ? bench.basin : `${bench.basin},${bench.metric}`);
+    if (dive) params.set('d', dive.id);
     history.replaceState(null, '', `#${params}`);
   }
   let hashTimer = 0;
@@ -509,13 +638,24 @@ async function boot() {
   const m = params.get('m');
   if (m === 'depth' || m === 'age') setColor(m);
   if (params.get('x') === '1') setHex(true, false);
+  if (params.get('s') === '0' && storms) {
+    state.storms = false;
+    storms.setVisible(false);
+  }
+  const [pBasin, pMetric] = params.get('p')?.split(',') ?? [];
+  if (pBasin && bench?.has(pBasin) && !a) bench.open(pBasin, pMetric === 'kboed' ? (pMetric as PeerMetric) : undefined);
+  const d = params.get('d');
+  if (d && subseaHubs[d]) {
+    if (!a) selectById(d, !c);
+    openDive(d);
+  }
 
   // --- reveal --------------------------------------------------------------------------
   $('loader').classList.add('done');
   setTimeout(() => $('loader').remove(), 800);
   if (window.innerWidth >= 760) document.body.classList.add('panel-open');
   // Opening shot: arrive from deep space unless the link asked for a specific view.
-  if (!c && !a && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (!c && !a && !d && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     map.jumpTo({ center: [70, 5], zoom: 0.6 });
     map.easeTo({ center: [-30, 30], zoom: 1.6, duration: 5200, easing: (n) => 1 - Math.pow(1 - n, 3) });
   }
@@ -571,11 +711,14 @@ function aboutHtml(atlas: Atlas): string {
         <li>Production is converted to kboe/d with 5,800 scf of gas = 1 barrel of oil equivalent. Liquids include condensate and NGL.</li>
         <li>The timeline stacks Shell-operated and JV assets only, and stops at the latest month all three regulators have published. Partner-only fields (such as Troll) appear in each field's panel with Shell's net share.</li>
         <li>Production towers and extruded fields are scaled to gross kboe/d in the selected month. The 3D retail skyline counts OpenStreetMap-tagged stations per hexagonal cell; cells are drawn in Web Mercator, so they cover less ground at high latitudes.</li>
+        <li>Storm categories use the Saffir-Simpson wind scale on NHC best-track winds. “Production in the path” of a live system sums the latest reported month of the hubs inside the forecast cone or near the forecast track.</li>
         <li>Seabed and night-light basemaps are NASA Blue Marble and Black Marble imagery served by NASA EOSDIS GIBS.</li>
+        <li>The subsea view (“Dive below” on a Gulf hub) draws wellbores from BOEM's borehole file and directional surveys, to true scale. A wellbore belongs to a hub when BOEM lists the hub's platform as its complex, or when it has no complex on file and shares the hub's field code. Each sidetrack is a wellbore. The seabed there is interpolated from well-site water depths, and nothing is drawn for the geology.</li>
+        <li>The peer benchmark ranks operators by the gross production they operate, from the same regulator files. It says nothing about equity or net production. Adura, the Shell–Equinor joint venture, is listed as its own operator.</li>
         <li>“Operated” follows the regulator's operator of record, not Shell's reported working interest. Gross volumes are not Shell's net production.</li>
       </ul>
       <h3>Keyboard</h3>
-      <p class="keys"><kbd>/</kbd> search <kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step month <kbd>T</kbd> tour <kbd>O</kbd> orbit <kbd>F</kbd> fullscreen <kbd>Esc</kbd> close</p>
+      <p class="keys"><kbd>/</kbd> search <kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step month <kbd>T</kbd> tour <kbd>B</kbd> benchmark <kbd>O</kbd> orbit <kbd>F</kbd> fullscreen <kbd>Esc</kbd> close</p>
     </form>`;
 }
 

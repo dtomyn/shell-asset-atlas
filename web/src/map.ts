@@ -101,7 +101,7 @@ export function createMap(
     new maplibregl.AttributionControl({
       compact: true,
       customAttribution:
-        'Data: <a href="https://www.data.boem.gov/" target="_blank">BOEM</a> · <a href="https://www.nstauthority.co.uk/" target="_blank">NSTA (OGL)</a> · <a href="https://factpages.sodir.no/" target="_blank">Sodir (NLOD)</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors · © <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
+        'Data: <a href="https://www.data.boem.gov/" target="_blank">BOEM</a> · <a href="https://www.nstauthority.co.uk/" target="_blank">NSTA (OGL)</a> · <a href="https://factpages.sodir.no/" target="_blank">Sodir (NLOD)</a> · <a href="https://www.nhc.noaa.gov/data/" target="_blank">NOAA NHC</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors · © <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
     }),
     'bottom-right',
   );

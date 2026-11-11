@@ -8,7 +8,10 @@ export interface Stack {
 export interface ChartOptions {
   months: string[];
   stacks: Stack[];
-  lines?: (Stack & { dash?: string })[];
+  /** `pin` keeps a line in the tooltip when `tipTop` cuts the list */
+  lines?: (Stack & { dash?: string; width?: number; opacity?: number; pin?: boolean })[];
+  /** tooltip: list only the largest N lines at the hovered month (plus pinned ones), largest first */
+  tipTop?: number;
   cursor?: number;
   unit: string;
   height?: number;
@@ -99,9 +102,13 @@ export class AreaChart {
   private showTip(i: number, clientX: number) {
     const { months, stacks, lines = [], unit } = this.opts;
     if (!months.length) return;
-    const rows = [...stacks, ...lines]
-      .map((s) => ({ s, v: s.values[i] }))
-      .filter((r) => r.v != null)
+    const top = this.opts.tipTop;
+    let listed = [...stacks, ...lines].map((s) => ({ s, v: s.values[i] })).filter((r) => r.v != null);
+    if (top) {
+      listed.sort((a, b) => (b.v as number) - (a.v as number));
+      listed = listed.filter((r, k) => k < top || (r.s as { pin?: boolean }).pin);
+    }
+    const rows = listed
       .map((r) => `<div><i style="background:${r.s.color}"></i>${r.s.label}<b>${fmtNum(r.v as number, (r.v as number) < 10 ? 1 : 0)}</b></div>`)
       .join('');
     const total = stacks.reduce((a, s) => a + (s.values[i] ?? 0), 0);
@@ -185,7 +192,7 @@ export class AreaChart {
         if (v == null) return;
         d += `${d ? 'L' : 'M'}${this.x(i)},${this.y(v)}`;
       });
-      svg.append(el('path', { d, fill: 'none', stroke: l.color, 'stroke-width': 1.6, 'stroke-dasharray': l.dash ?? '' }));
+      svg.append(el('path', { d, fill: 'none', stroke: l.color, 'stroke-width': l.width ?? 1.6, 'stroke-opacity': l.opacity ?? 1, 'stroke-dasharray': l.dash ?? '' }));
     }
 
     // cursor

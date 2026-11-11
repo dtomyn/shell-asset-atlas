@@ -53,6 +53,7 @@
         <button class="btn primary" id="tour-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>Guided tour</button>
         <button class="btn" id="about-btn">Data &amp; method</button>
       </section>
+      <section class="storms" id="storms" hidden></section>
     </aside>
 
     <nav class="mapbar glass" id="mapbar" aria-label="Map display">
@@ -68,6 +69,9 @@
       </div>
       <button class="tool" id="hex-btn" aria-pressed="false" title="Fuel stations as a 3D density skyline">
         <svg viewBox="0 0 24 24"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9zM4 7.5 12 12l8-4.5M12 12v9" /></svg>3D retail
+      </button>
+      <button class="tool" id="bench-btn" aria-pressed="false" title="Benchmark Shell against other operators (B)" hidden>
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>Benchmark
       </button>
       <button class="tool" id="orbit-btn" aria-pressed="false" title="Slowly orbit the camera (O)">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M20.5 9a9 9 0 1 0 .5 3M21 4v5h-5" /></svg>Orbit
@@ -92,6 +96,8 @@
       <div class="race-rows" id="race-rows"></div>
       <p class="race-note">Gross (100%) kboe/d reported per hub or field, not Shell's net share. Press play to race.</p>
     </aside>
+
+    <aside class="bench glass" id="bench" aria-label="Peer benchmark" hidden></aside>
 
     <div class="hud" id="hud" aria-hidden="true"></div>
 
