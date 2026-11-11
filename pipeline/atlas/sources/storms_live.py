@@ -14,10 +14,11 @@ import json
 import logging
 import re
 import zipfile
+from urllib.parse import urlsplit
 
 from ..geo import simplify_line
 from ..model import SourceResult
-from ..net import fetch
+from ..net import fetch, read_member
 
 log = logging.getLogger(__name__)
 
@@ -62,11 +63,28 @@ def parse_cone_kml(kml: str) -> list[list[float]] | None:
 def kmz_text(blob: bytes) -> str:
     with zipfile.ZipFile(io.BytesIO(blob)) as z:
         name = next(n for n in z.namelist() if n.lower().endswith(".kml"))
-        return z.read(name).decode("utf-8", "replace")
+        return read_member(z, name, limit=KMZ_LIMIT).decode("utf-8", "replace")
+
+
+# Forecast graphics are a few hundred KB; anything far bigger is not a real NHC file.
+KMZ_LIMIT = 64 << 20
+
+
+def nhc_url(url: str | None) -> bool:
+    """Only follow graphic links that point at the NHC itself; the feed is data, not a URL list
+    we should fetch blindly."""
+    if not url:
+        return False
+    u = urlsplit(url)
+    host = (u.hostname or "").lower()
+    return u.scheme == "https" and (host == "nhc.noaa.gov" or host.endswith(".nhc.noaa.gov"))
 
 
 def _kmz(url: str | None, parse) -> list[list[float]] | None:
     if not url:
+        return None
+    if not nhc_url(url):
+        log.warning("ignoring non-NHC graphic URL %r", url)
         return None
     try:
         return parse(kmz_text(fetch(url, ttl=0, retries=2)))

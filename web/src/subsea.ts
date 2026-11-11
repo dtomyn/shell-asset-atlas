@@ -156,9 +156,11 @@ export async function openSubsea(o: SubseaOptions): Promise<SubseaHandle> {
   q<HTMLButtonElement>('[data-close]').focus();
   const handle: SubseaHandle = { close };
 
+  // Anything that throws while the scene is being built must not orphan the overlay.
+  const build = async (): Promise<SubseaHandle> => {
   const data = await loadWells();
   if (closed) return handle;
-  const hub = data?.hubs[o.hubId];
+  const hub = data && Object.hasOwn(data.hubs, o.hubId) ? data.hubs[o.hubId] : undefined;
   if (!data || !hub || !hub.wells.length) {
     msg.textContent = 'No well data is available for this hub in the current build.';
     return handle;
@@ -649,4 +651,11 @@ export async function openSubsea(o: SubseaOptions): Promise<SubseaHandle> {
   if (!reduced) startDive();
   raf = requestAnimationFrame(frame_);
   return handle;
+  };
+  try {
+    return await build();
+  } catch (e) {
+    close();
+    throw e;
+  }
 }

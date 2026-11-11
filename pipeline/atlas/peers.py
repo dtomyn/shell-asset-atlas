@@ -37,7 +37,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .model import BBL_PER_M3, SCF_PER_M3, SourceResult, days_in, kboed, title_case
-from .net import NotAvailable, fetch, fetch_json, zip_text
+from .net import fetch, fetch_json, zip_text
 from .sources import gom, norway, uk
 
 log = logging.getLogger(__name__)
@@ -263,9 +263,8 @@ def _gulf() -> dict[str, dict]:
     total = placed = 0.0
     ndays: dict[str, int] = {}
     for year in range(gom.FIRST_YEAR, dt.date.today().year + 1):
-        try:
-            blob = fetch(f"{gom.BASE}/Production/Files/ogora{year}delimit.zip", expect="zip")
-        except NotAvailable:
+        blob = gom.production_zip(year)
+        if blob is None:
             continue
         for r in csv.reader(io.StringIO(zip_text(blob))):
             if len(r) < 14:

@@ -1,7 +1,7 @@
 // Right-hand details drawer for an asset, field or pipeline.
 import { AreaChart, fmtMonth, fmtNum } from './chart';
 import { GAS_PER_BOE, KIND_LABEL, SEGMENTS, STAKE_LABEL, lastReported, segmentOf, type AssetProps, type Atlas, type SeriesData } from './data';
-import { escapeHtml } from './map';
+import { escapeHtml, safeUrl } from './map';
 
 const SOURCE_LABEL: Record<string, string> = {
   boem: 'BOEM / BSEE Data Center',
@@ -108,7 +108,7 @@ export class Drawer {
       ? this.atlas.assets.features
           .filter((f) => f.properties.series === p.series && f.properties.id !== p.id && f.properties.kind !== 'subsea')
           .slice(0, 8)
-          .map((f) => `<button class="chip small" data-goto="${f.properties.id}">${escapeHtml(f.properties.name)}</button>`)
+          .map((f) => `<button class="chip small" data-goto="${escapeHtml(f.properties.id)}">${escapeHtml(f.properties.name)}</button>`)
           .join('')
       : '';
 
@@ -118,12 +118,13 @@ export class Drawer {
       ? `<button class="btn dive-btn" data-dive><span><svg viewBox="0 0 24 24"><path d="M12 4v14M6 12l6 6 6-6" /></svg>Dive below</span><small>${fmtNum(sub.wells)} wellbores · deepest ${fmtNum(sub.deepest_tvd_m)} m below sea level</small></button>`
       : '';
 
-    const link = p.url
-      ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(SOURCE_LABEL[p.source] ?? p.source)} ↗</a>`
+    const url = safeUrl(p.url);
+    const link = url
+      ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(SOURCE_LABEL[p.source] ?? p.source)} ↗</a>`
       : escapeHtml(SOURCE_LABEL[p.source] ?? p.source);
 
     this.body.innerHTML = `
-      <p class="kicker"><span class="dot" style="background:${seg.color}"></span>${seg.label} · <span class="stake stake-${p.stake}">${STAKE_LABEL[p.stake]}</span></p>
+      <p class="kicker"><span class="dot" style="background:${seg.color}"></span>${seg.label} · <span class="stake stake-${escapeHtml(p.stake)}">${escapeHtml(STAKE_LABEL[p.stake] ?? p.stake)}</span></p>
       <h2>${escapeHtml(p.name)}</h2>
       <p class="subtitle">${escapeHtml(kind)}${p.country ? ` · ${escapeHtml(p.country)}` : ''}</p>
       ${p.summary ? `<p class="summary">${escapeHtml(p.summary)}</p>` : ''}

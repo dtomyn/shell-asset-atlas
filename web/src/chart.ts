@@ -1,4 +1,5 @@
 // Dependency-free responsive SVG area chart with hover read-out and a scrubbable cursor.
+import { escapeHtml } from './map';
 export interface Stack {
   label: string;
   color: string;
@@ -109,7 +110,7 @@ export class AreaChart {
       listed = listed.filter((r, k) => k < top || (r.s as { pin?: boolean }).pin);
     }
     const rows = listed
-      .map((r) => `<div><i style="background:${r.s.color}"></i>${r.s.label}<b>${fmtNum(r.v as number, (r.v as number) < 10 ? 1 : 0)}</b></div>`)
+      .map((r) => `<div><i style="background:${escapeHtml(r.s.color)}"></i>${escapeHtml(r.s.label)}<b>${fmtNum(r.v as number, (r.v as number) < 10 ? 1 : 0)}</b></div>`)
       .join('');
     const total = stacks.reduce((a, s) => a + (s.values[i] ?? 0), 0);
     this.tip.innerHTML = `<div class="tip-h">${fmtMonth(months[i])}${stacks.length > 1 ? ` · <b>${fmtNum(total, 0)}</b> ${unit}` : ` · ${unit}`}</div>${rows}`;

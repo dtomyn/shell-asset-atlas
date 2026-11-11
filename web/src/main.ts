@@ -3,7 +3,7 @@ import { AreaChart, fmtMonth, fmtNum } from './chart';
 import { KIND_LABEL, SEGMENTS, STAKE_LABEL, loadAtlas, segmentOf, type AssetProps, type Atlas, type Region, type Stake } from './data';
 import { Drawer } from './drawer';
 import { hud, starfield } from './fx';
-import { COLOR_MODES, createMap, escapeHtml, type Basemap, type ColorMode, type LayerKey, type MapController } from './map';
+import { COLOR_MODES, createMap, escapeHtml, safeUrl, type Basemap, type ColorMode, type LayerKey, type MapController } from './map';
 import { Benchmark, loadPeers, type PeerMetric } from './peers';
 import { Race } from './race';
 import { Storms, loadStorms } from './storms';
@@ -122,7 +122,7 @@ async function boot() {
   const subseaHubs = atlas.manifest.subsea ?? {};
   let dive: { id: string; handle: Promise<SubseaHandle | null> } | null = null;
   function openDive(id: string) {
-    if (!subseaHubs[id] || dive?.id === id) return;
+    if (!Object.hasOwn(subseaHubs, id) || dive?.id === id) return;
     closeDive();
     stopPlay();
     ctrl.stopSpin();
@@ -645,7 +645,7 @@ async function boot() {
   const [pBasin, pMetric] = params.get('p')?.split(',') ?? [];
   if (pBasin && bench?.has(pBasin) && !a) bench.open(pBasin, pMetric === 'kboed' ? (pMetric as PeerMetric) : undefined);
   const d = params.get('d');
-  if (d && subseaHubs[d]) {
+  if (d && Object.hasOwn(subseaHubs, d)) {
     if (!a) selectById(d, !c);
     openDive(d);
   }
@@ -691,9 +691,9 @@ function aboutHtml(atlas: Atlas): string {
   const rows = m.sources
     .map(
       (s) => `<tr>
-        <td><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.publisher)}</a><small>${escapeHtml(s.title)}</small></td>
+        <td>${safeUrl(s.url) ? `<a href="${escapeHtml(safeUrl(s.url))}" target="_blank" rel="noopener">${escapeHtml(s.publisher)}</a>` : escapeHtml(s.publisher)}<small>${escapeHtml(s.title)}</small></td>
         <td>${escapeHtml(s.license)}</td>
-        <td><span class="state state-${s.state}">${s.state}</span><small>${s.fetched_at ? new Date(s.fetched_at).toLocaleDateString('en-GB') : ''}</small></td>
+        <td><span class="state state-${escapeHtml(s.state)}">${escapeHtml(s.state)}</span><small>${s.fetched_at ? new Date(s.fetched_at).toLocaleDateString('en-GB') : ''}</small></td>
       </tr>`,
     )
     .join('');
