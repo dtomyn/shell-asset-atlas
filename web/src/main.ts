@@ -2,7 +2,9 @@ import './style.css';
 import { AreaChart, fmtMonth, fmtNum } from './chart';
 import { KIND_LABEL, SEGMENTS, STAKE_LABEL, loadAtlas, segmentOf, type AssetProps, type Atlas, type Region, type Stake } from './data';
 import { Drawer } from './drawer';
-import { createMap, escapeHtml, type LayerKey, type MapController } from './map';
+import { hud, starfield } from './fx';
+import { COLOR_MODES, createMap, escapeHtml, type Basemap, type ColorMode, type LayerKey, type MapController } from './map';
+import { Race } from './race';
 import { buildTour, type TourStop } from './tour';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -34,6 +36,9 @@ async function boot() {
     layers: { assets: true, fields: true, pipelines: true, fuel: true, ev: false } as Record<LayerKey, boolean>,
     stakes: new Set<Stake>(['operated', 'jv', 'partner']),
     selected: null as string | null,
+    basemap: 'dark' as Basemap,
+    color: 'segment' as ColorMode,
+    hex: false,
   };
 
   let ctrl: MapController;
@@ -62,6 +67,12 @@ async function boot() {
     select(props, false);
   });
   const { map } = ctrl;
+  // The film renderer (film/render.py) opens the page with ?film and drives the real controls.
+  // It needs the map to find where an asset is on screen and to know when tiles have loaded.
+  if (new URLSearchParams(location.search).has('film')) (window as unknown as Record<string, unknown>).__atlas = { map, ctrl, atlas };
+  starfield($('stars'), map);
+  hud($('hud'), map);
+  const race = new Race($('race-rows'), atlas, ctrl.seriesOwner, 8, (id) => selectById(id, true));
 
   // --- KPIs ----------------------------------------------------------------------------
   const k = atlas.manifest.kpis;
@@ -103,10 +114,82 @@ async function boot() {
   // legend for segments (inside layers section)
   const legend = document.createElement('div');
   legend.className = 'legend';
-  legend.innerHTML = Object.values(SEGMENTS)
+  const segmentLegend = Object.values(SEGMENTS)
     .map((s) => `<span><i style="background:${s.color}"></i>${s.label}</span>`)
     .join('');
+  legend.innerHTML = segmentLegend;
   $('layers').after(legend);
+
+  // --- map bar: basemap, colour mode, 3D retail, orbit, share, fullscreen -----------------
+  const segButtons = (group: string, attr: string, value: string) =>
+    document.querySelectorAll<HTMLButtonElement>(`#${group} button`).forEach((b) => b.classList.toggle('on', b.dataset[attr] === value));
+  function setBasemap(mode: Basemap) {
+    state.basemap = mode;
+    ctrl.setBasemap(mode);
+    segButtons('basemap', 'base', mode);
+    writeHashSoon();
+  }
+  function setColor(mode: ColorMode) {
+    state.color = mode;
+    ctrl.setColorMode(mode);
+    segButtons('colorby', 'color', mode);
+    const lg = COLOR_MODES[mode].legend;
+    legend.innerHTML = lg
+      ? `<span class="ramp"><b style="background:linear-gradient(90deg,${lg.stops.map((st) => st[1]).join(',')})"></b>
+          <div>${lg.stops.map((st) => `<span>${lg.unit ? fmtNum(st[0]) : st[0]}${lg.unit}</span>`).join('')}</div>
+          <p>${lg.note}. <i style="background:#566273"></i>not recorded</p></span>`
+      : segmentLegend;
+    writeHashSoon();
+  }
+  function setHex(on: boolean, tilt = true) {
+    state.hex = on;
+    ctrl.setFuelMode(on ? 'hex' : 'heat');
+    $('hex-btn').setAttribute('aria-pressed', String(on));
+    if (on) {
+      if (!state.layers.fuel) {
+        state.layers.fuel = true;
+        ctrl.setLayerVisible('fuel', true);
+        const cb = document.querySelector<HTMLInputElement>('[data-layer="fuel"]');
+        if (cb) cb.checked = true;
+      }
+      // The skyline only reads in perspective and at regional scale.
+      if (tilt && (map.getPitch() < 35 || map.getZoom() < 3.2 || map.getZoom() > 8)) {
+        ctrl.stopSpin();
+        map.flyTo({ center: map.getZoom() < 3.2 || map.getZoom() > 8 ? [5.5, 50.5] : map.getCenter(), zoom: Math.min(Math.max(map.getZoom(), 4.6), 6.5), pitch: 58, bearing: -18, duration: 2600, essential: true });
+      }
+    }
+    writeHashSoon();
+  }
+  $('basemap').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-base]');
+    if (b) setBasemap(b.dataset.base as Basemap);
+  });
+  $('colorby').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-color]');
+    if (b) setColor(b.dataset.color as ColorMode);
+  });
+  $('hex-btn').addEventListener('click', () => setHex(!state.hex));
+  let orbiting = false;
+  ctrl.onOrbitChange = (on) => {
+    orbiting = on;
+    $('orbit-btn').setAttribute('aria-pressed', String(on));
+  };
+  const toggleOrbit = () => {
+    if (!orbiting && map.getPitch() < 30) map.easeTo({ pitch: 50, duration: 900 });
+    ctrl.setOrbit(!orbiting);
+  };
+  $('orbit-btn').addEventListener('click', toggleOrbit);
+  $('share-btn').addEventListener('click', async () => {
+    writeHash();
+    try {
+      await navigator.clipboard.writeText(location.href);
+      toast('Link to this view copied');
+    } catch {
+      toast('Copy the address bar to share this view');
+    }
+  });
+  const toggleFullscreen = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}));
+  $('fs-btn').addEventListener('click', toggleFullscreen);
 
   // --- stakes --------------------------------------------------------------------------
   $('stakes').innerHTML = (['operated', 'jv', 'partner'] as Stake[])
@@ -124,6 +207,7 @@ async function boot() {
       x.setAttribute('aria-pressed', String(on));
     });
     ctrl.setStakes(state.stakes);
+    race.update(state.month, state.stakes);
   });
 
   // --- regions -------------------------------------------------------------------------
@@ -171,6 +255,8 @@ async function boot() {
     $('tl-month').textContent = fmtMonth(P.months[state.month], true);
     const total = regions.reduce((a, r) => a + (P.totals[`${r}:operated`]?.gross[state.month] ?? 0) + (P.totals[`${r}:jv`]?.gross[state.month] ?? 0), 0);
     $('tl-total').innerHTML = `<b>${fmtNum(total)}</b> kboe/d`;
+    race.update(state.month, state.stakes);
+    $('race-month').textContent = fmtMonth(P.months[state.month]);
     writeHashSoon();
   }
 
@@ -206,7 +292,8 @@ async function boot() {
       const hit = everything.find((e) => e.p.id === p.id);
       if (hit) {
         ctrl.stopSpin();
-        map.flyTo({ center: hit.c, zoom: Math.max(map.getZoom(), hit.type === 'field' ? 7 : 8), pitch: 50, duration: 2200, essential: true });
+        map.flyTo({ center: hit.c, zoom: Math.max(map.getZoom(), hit.type === 'field' ? 7 : 8), pitch: 55, duration: 2200, essential: true });
+        ctrl.setOrbit(true); // starts turning once the flight lands; any touch of the map stops it
       }
     }
     writeHash();
@@ -300,6 +387,8 @@ async function boot() {
     const mobile = window.innerWidth < 760;
     const padding = mobile ? { top: 120, bottom: 300, left: 0, right: 0 } : { top: 40, bottom: 300, left: 0, right: s.select ? 420 : 0 };
     map.flyTo({ ...s.camera, padding, duration: 3800, curve: 1.6, essential: true });
+    ctrl.setOrbit(!!s.select);
+    armAuto();
     if (s.select) {
       const hit = everything.find((e) => e.p.id === s.select);
       if (hit) {
@@ -309,6 +398,25 @@ async function boot() {
       }
     } else drawer.close();
   }
+  const AUTO_MS = 11000;
+  let auto = false;
+  let autoTimer = 0;
+  function armAuto() {
+    clearTimeout(autoTimer);
+    tourEl.classList.remove('auto');
+    if (!auto || tourEl.hidden) return;
+    void tourEl.offsetWidth; // restart the progress animation
+    tourEl.style.setProperty('--auto-ms', `${AUTO_MS}ms`);
+    tourEl.classList.add('auto');
+    autoTimer = window.setTimeout(() => (stop === stops.length - 1 ? setAuto(false) : showStop(stop + 1)), AUTO_MS);
+  }
+  function setAuto(on: boolean) {
+    auto = on;
+    $('tour-auto').setAttribute('aria-pressed', String(on));
+    $('tour-auto').textContent = on ? 'Pause' : 'Auto-play';
+    armAuto();
+  }
+  $('tour-auto').addEventListener('click', () => setAuto(!auto));
   function startTour() {
     stops = buildTour(atlas, endIdx);
     stopPlay();
@@ -324,6 +432,8 @@ async function boot() {
     if (panelWasOpen) document.body.classList.add('panel-open');
     tourEl.hidden = true;
     document.body.classList.remove('touring');
+    setAuto(false);
+    ctrl.setOrbit(false);
   }
   $('tour-btn').addEventListener('click', startTour);
   $('tour-exit').addEventListener('click', endTour);
@@ -358,7 +468,11 @@ async function boot() {
     } else if (!typing && tourEl.hidden && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
       stopPlay();
       setMonth(state.month + (e.key === 'ArrowRight' ? 1 : -1));
-    } else if (e.key.toLowerCase() === 't' && !typing && tourEl.hidden) startTour();
+    } else if (typing || e.ctrlKey || e.metaKey || e.altKey) {
+      return;
+    } else if (e.key.toLowerCase() === 't' && tourEl.hidden) startTour();
+    else if (e.key.toLowerCase() === 'o') toggleOrbit();
+    else if (e.key.toLowerCase() === 'f') toggleFullscreen();
   });
 
   // --- URL hash (shareable deep links) -------------------------------------------------
@@ -368,6 +482,9 @@ async function boot() {
     params.set('c', `${c.lng.toFixed(3)},${c.lat.toFixed(3)},${map.getZoom().toFixed(2)},${map.getPitch().toFixed(0)},${map.getBearing().toFixed(0)}`);
     if (state.month !== endIdx) params.set('t', P.months[state.month]);
     if (state.selected) params.set('a', state.selected);
+    if (state.basemap !== 'dark') params.set('b', state.basemap);
+    if (state.color !== 'segment') params.set('m', state.color);
+    if (state.hex) params.set('x', '1');
     history.replaceState(null, '', `#${params}`);
   }
   let hashTimer = 0;
@@ -387,11 +504,21 @@ async function boot() {
   }
   const a = params.get('a');
   if (a) selectById(a, !c);
+  const b = params.get('b');
+  if (b === 'ocean' || b === 'night') setBasemap(b);
+  const m = params.get('m');
+  if (m === 'depth' || m === 'age') setColor(m);
+  if (params.get('x') === '1') setHex(true, false);
 
   // --- reveal --------------------------------------------------------------------------
   $('loader').classList.add('done');
   setTimeout(() => $('loader').remove(), 800);
   if (window.innerWidth >= 760) document.body.classList.add('panel-open');
+  // Opening shot: arrive from deep space unless the link asked for a specific view.
+  if (!c && !a && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    map.jumpTo({ center: [70, 5], zoom: 0.6 });
+    map.easeTo({ center: [-30, 30], zoom: 1.6, duration: 5200, easing: (n) => 1 - Math.pow(1 - n, 3) });
+  }
   const staleSources = atlas.manifest.sources.filter((s) => s.state === 'stale');
   if (staleSources.length) toast(`Showing cached data for: ${staleSources.map((s) => s.publisher).join(', ')}`);
 }
@@ -443,10 +570,12 @@ function aboutHtml(atlas: Atlas): string {
         ${notes}
         <li>Production is converted to kboe/d with 5,800 scf of gas = 1 barrel of oil equivalent. Liquids include condensate and NGL.</li>
         <li>The timeline stacks Shell-operated and JV assets only, and stops at the latest month all three regulators have published. Partner-only fields (such as Troll) appear in each field's panel with Shell's net share.</li>
+        <li>Production towers and extruded fields are scaled to gross kboe/d in the selected month. The 3D retail skyline counts OpenStreetMap-tagged stations per hexagonal cell; cells are drawn in Web Mercator, so they cover less ground at high latitudes.</li>
+        <li>Seabed and night-light basemaps are NASA Blue Marble and Black Marble imagery served by NASA EOSDIS GIBS.</li>
         <li>“Operated” follows the regulator's operator of record, not Shell's reported working interest. Gross volumes are not Shell's net production.</li>
       </ul>
       <h3>Keyboard</h3>
-      <p class="keys"><kbd>/</kbd> search <kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step month <kbd>T</kbd> tour <kbd>Esc</kbd> close</p>
+      <p class="keys"><kbd>/</kbd> search <kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> step month <kbd>T</kbd> tour <kbd>O</kbd> orbit <kbd>F</kbd> fullscreen <kbd>Esc</kbd> close</p>
     </form>`;
 }
 

@@ -1,0 +1,251 @@
+1
+00:00:00,950 --> 00:00:01,750
+Every month,
+
+2
+00:00:01,750 --> 00:00:06,551
+oil and gas operators tell public regulators exactly what they produced.
+
+3
+00:00:06,551 --> 00:00:08,619
+The numbers are open to anyone.
+
+4
+00:00:08,619 --> 00:00:09,953
+Almost no one looks.
+
+5
+00:00:10,516 --> 00:00:13,055
+This is what happens when you put them on a globe.
+
+6
+00:00:16,016 --> 00:00:18,006
+This is the Shell Asset Atlas.
+
+7
+00:00:18,006 --> 00:00:22,384
+It's an unofficial portfolio project, with no connection to Shell,
+
+8
+00:00:22,384 --> 00:00:24,507
+built entirely from public data.
+
+9
+00:00:25,016 --> 00:00:27,303
+210 installations and sites.
+
+10
+00:00:27,303 --> 00:00:29,100
+48 oil and gas fields.
+
+11
+00:00:29,100 --> 00:00:31,959
+About 5,900 kilometres of pipeline.
+
+12
+00:00:31,959 --> 00:00:38,819
+All of it drawn from regulators in the United States, the United Kingdom and Norway.
+
+13
+00:00:39,449 --> 00:00:40,776
+Start in the US Gulf.
+
+14
+00:00:40,776 --> 00:00:42,799
+Each column is a production hub,
+
+15
+00:00:42,799 --> 00:00:46,084
+and its height is what that hub produced in a month.
+
+16
+00:00:46,550 --> 00:00:48,334
+Point at one for a quick read.
+
+17
+00:00:48,334 --> 00:00:50,475
+Click it, and the full record opens.
+
+18
+00:00:51,250 --> 00:00:52,501
+This is Mars:
+
+19
+00:00:52,501 --> 00:00:58,951
+a tension-leg platform, standing in 894 metres of water since 1996.
+
+20
+00:00:59,483 --> 00:01:04,557
+Below that, every month of production since 2015, split into liquids and gas,
+
+21
+00:01:04,557 --> 00:01:07,654
+with a link back to the regulator's own record.
+
+22
+00:01:09,316 --> 00:01:10,286
+Now press play.
+
+23
+00:01:10,286 --> 00:01:13,325
+A decade of production replays, month by month.
+
+24
+00:01:13,325 --> 00:01:17,657
+The columns rise and fall, and the leaderboard re-ranks as it goes.
+
+25
+00:01:22,116 --> 00:01:22,814
+Stop here:
+
+26
+00:01:22,814 --> 00:01:23,860
+September 2021.
+
+27
+00:01:23,860 --> 00:01:26,789
+Hurricane Ida struck at the end of August,
+
+28
+00:01:26,789 --> 00:01:32,577
+and Shell-operated production in the Gulf fell by more than half in a single month.
+
+29
+00:01:32,577 --> 00:01:35,087
+The Mars hub reports nothing at all.
+
+30
+00:01:35,716 --> 00:01:39,092
+Press play again, and the recovery is there too.
+
+31
+00:01:39,092 --> 00:01:44,156
+By December 2025, newer hubs like Vito and Whale are on the leaderboard,
+
+32
+00:01:44,156 --> 00:01:49,220
+and the total is about a million barrels of oil equivalent a day, gross.
+
+33
+00:01:49,849 --> 00:01:50,854
+Change the view.
+
+34
+00:01:50,854 --> 00:01:54,245
+The seabed basemap shows why this is called deepwater:
+
+35
+00:01:54,245 --> 00:01:57,572
+the platforms stand far beyond the continental shelf.
+
+36
+00:01:58,083 --> 00:02:01,879
+Colour by water depth, then search for Perdido.
+
+37
+00:02:01,879 --> 00:02:04,867
+It's moored in 2,388 metres of water.
+
+38
+00:02:06,716 --> 00:02:08,870
+The leaderboard is a way in, too.
+
+39
+00:02:08,870 --> 00:02:11,807
+Troll, off Norway, is the biggest name on it.
+
+40
+00:02:11,807 --> 00:02:13,895
+But Shell doesn't operate Troll.
+
+41
+00:02:13,895 --> 00:02:15,527
+It holds about 8 percent.
+
+42
+00:02:16,049 --> 00:02:18,690
+So the atlas marks it as a partner asset,
+
+43
+00:02:18,690 --> 00:02:21,652
+shows Shell's net figure beside the gross one,
+
+44
+00:02:21,652 --> 00:02:24,228
+and draws the net share as its own line.
+
+45
+00:02:24,228 --> 00:02:26,353
+Gross is never passed off as net.
+
+46
+00:02:27,483 --> 00:02:29,839
+Shell is also a name on the street.
+
+47
+00:02:29,839 --> 00:02:35,696
+OpenStreetMap volunteers have mapped more than 28 thousand Shell-branded fuel stations.
+
+48
+00:02:36,216 --> 00:02:40,620
+One click turns them into a skyline, where taller means more stations.
+
+49
+00:02:40,620 --> 00:02:42,381
+Then set the camera turning.
+
+50
+00:02:44,316 --> 00:02:45,809
+Prefer to be shown around?
+
+51
+00:02:51,450 --> 00:02:53,384
+The guided tour makes 12 stops,
+
+52
+00:02:53,384 --> 00:02:57,253
+from the deepwater Gulf to a floating gas plant off Australia.
+
+53
+00:02:57,783 --> 00:03:01,047
+Every figure in its text is computed from the data.
+
+54
+00:03:01,047 --> 00:03:04,503
+So after each weekly refresh, the story is still true.
+
+55
+00:03:08,883 --> 00:03:11,276
+And none of it has to be taken on trust.
+
+56
+00:03:11,276 --> 00:03:15,944
+Data and method lists every source, its licence, and when it was last fetched.
+
+57
+00:03:16,616 --> 00:03:20,889
+A pipeline rebuilds the whole atlas from those sources every week.
+
+58
+00:03:20,889 --> 00:03:26,067
+If a regulator's site is down, it falls back to the last good copy, and says so.
+
+59
+00:03:30,616 --> 00:03:32,061
+The Shell Asset Atlas.
+
+60
+00:03:32,061 --> 00:03:35,672
+Public records, one globe, and a decade you can replay.
+
+61
+00:03:36,250 --> 00:03:40,176
+It's an unofficial project, and it isn't endorsed by Shell.
+
+62
+00:03:40,176 --> 00:03:44,968
+The data belongs to the regulators, and to OpenStreetMap's contributors.
+
+63
+00:03:44,968 --> 00:03:47,365
+This narration is a synthetic voice.

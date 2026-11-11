@@ -20,7 +20,12 @@
 - **A decade of production you can replay.** Monthly volumes from three regulators (US BOEM, UK NSTA, Norway Sodir), normalised to kboe/d. Press play (or <kbd>Space</kbd>) and every platform and field grows and shrinks month by month. Hurricane shut-ins in the Gulf show up clearly.
 - **Click anything.** Each asset has a details panel: production chart (liquids vs gas, plus Shell's *net* share where equity is public), water depth, install year, licensee equity table, and a link back to the regulator's record.
 - **Data-driven guided tour** (<kbd>T</kbd>). A 12-stop narrative from the deepwater Gulf to Prelude FLNG. Every number in the story is computed from the live bundle, so the text stays accurate after each refresh.
-- **Animated pipelines** coloured by product. Search with <kbd>/</kbd>, filter by stake (operated / JV / partner), and share deep links through the URL hash (camera, selected asset and month).
+- **Production towers and a live leaderboard.** Every producing hub carries a 3D column scaled to its gross kboe/d. A "top producers" bar-chart race re-ranks as the timeline plays; click a bar to fly there.
+- **Three basemaps.** Dark vector, NASA Blue Marble with seabed relief (the continental shelf and deepwater canyons under the Gulf platforms), and NASA Black Marble night lights.
+- **3D retail skyline.** One click turns 28,000 fuel stations from a heatmap into an extruded hexagonal density grid.
+- **Colour by segment, water depth or install year,** with a matching legend. Hover any hub for a production sparkline.
+- **Cinematic touches.** Fly-in from space over a parallax starfield, orbit camera (<kbd>O</kbd>), auto-playing tour, comet pulses running down trunk pipelines, cockpit read-out of position and altitude, fullscreen (<kbd>F</kbd>).
+- **Animated pipelines** coloured by product. Search with <kbd>/</kbd>, filter by stake (operated / JV / partner), and share deep links through the URL hash (camera, selected asset, month, basemap and colour mode).
 - **Self-healing data pipeline.** If a publisher is down during the weekly refresh, the build falls back to the last good snapshot and flags that source as *stale* in the UI instead of failing the deploy.
 
 ## Architecture
@@ -93,6 +98,24 @@ npm run dev                   # http://localhost:5173
 1. Push to GitHub.
 2. In **Settings → Pages**, set *Source* to **GitHub Actions**.
 3. The workflow deploys on every push to `main` and refreshes the data every Monday. Use **Run workflow** to refresh on demand.
+
+## Explainer film
+
+A narrated explainer of about four minutes is filmed from the real app, one exact frame at a time. A script moves a cursor over the real controls while the page's clock is stopped between frames, so every render comes out the same.
+
+- **`film/scenes.py`** is the story: each narrated line and each click, in order. Every number spoken is read from the data bundle, so a render after a data refresh stays true. If the data no longer supports a line, the render stops and says which.
+- **`film/render.py`** is the machinery: voice, frame loop, sound mix, captions and storyboard.
+- **`film/overlay.js`** adds the cursor and the title, chapter and end cards.
+
+```bash
+python film/render.py --storyboard   # storyboard, script, captions, thumbnail, YouTube text (~15 min)
+python film/render.py                # the 1080p film and all of the above (~1.5 hours)
+python film/render.py --remix        # rebuild only the sound on the last render
+```
+
+It needs `playwright`, `imageio-ffmpeg`, `kokoro-onnx`, `soundfile`, `numpy` and Microsoft Edge. The narration is a synthetic voice, Kokoro `af_heart`. Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` from [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) in a folder and point `KOKORO_DIR` at it. The narration sets the timing: change a line and the picture retimes. To use a real voice, save a line as `film/out/vo/recorded/<id>.wav` (the ids are in `film/out/script.md`).
+
+Everything is written to `film/out`. The videos and voice files are generated and aren't committed.
 
 ## Ideas for what's next
 

@@ -8,3 +8,19 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 Thumbs.db
+
+# Explainer film: the videos, voice files and render scratch are generated (see film/render.py)
+film/out/*.mp4
+film/out/*.wav
+film/out/vo/
+film/out/failed.jpg
+film/out/render.log
+film/out/timeline*.json
+
+# Local environment and editor files
+.env
+.env.*
+*.log
+.vscode/
+.idea/
+.claude/settings.local.json

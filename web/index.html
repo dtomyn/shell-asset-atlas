@@ -12,7 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <div id="stars" aria-hidden="true"></div>
     <div id="map" aria-label="Interactive globe of Shell assets"></div>
+    <div class="vignette" aria-hidden="true"></div>
 
     <header class="brand glass">
       <div class="brand-row">
@@ -53,12 +55,45 @@
       </section>
     </aside>
 
+    <nav class="mapbar glass" id="mapbar" aria-label="Map display">
+      <div class="seg" id="basemap" role="group" aria-label="Basemap">
+        <button data-base="dark" class="on" title="Dark vector basemap">Dark</button>
+        <button data-base="ocean" title="NASA Blue Marble with seabed relief">Seabed</button>
+        <button data-base="night" title="NASA Black Marble: Earth at night">Night</button>
+      </div>
+      <div class="seg" id="colorby" role="group" aria-label="Colour installations by">
+        <button data-color="segment" class="on" title="Colour by business segment">Segment</button>
+        <button data-color="depth" title="Colour by water depth">Depth</button>
+        <button data-color="age" title="Colour by year installed">Age</button>
+      </div>
+      <button class="tool" id="hex-btn" aria-pressed="false" title="Fuel stations as a 3D density skyline">
+        <svg viewBox="0 0 24 24"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9zM4 7.5 12 12l8-4.5M12 12v9" /></svg>3D retail
+      </button>
+      <button class="tool" id="orbit-btn" aria-pressed="false" title="Slowly orbit the camera (O)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M20.5 9a9 9 0 1 0 .5 3M21 4v5h-5" /></svg>Orbit
+      </button>
+      <button class="tool icon" id="share-btn" aria-label="Copy link to this view" title="Copy link to this view">
+        <svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>
+      </button>
+      <button class="tool icon" id="fs-btn" aria-label="Toggle fullscreen" title="Fullscreen (F)">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+      </button>
+    </nav>
+
     <aside class="drawer glass" id="drawer" hidden>
       <button class="icon-btn close" id="drawer-close" aria-label="Close details">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
       <div id="drawer-body"></div>
     </aside>
+
+    <aside class="race glass" id="race">
+      <h2>Top producers <small id="race-month"></small></h2>
+      <div class="race-rows" id="race-rows"></div>
+      <p class="race-note">Gross (100%) kboe/d reported per hub or field, not Shell's net share. Press play to race.</p>
+    </aside>
+
+    <div class="hud" id="hud" aria-hidden="true"></div>
 
     <footer class="timeline glass" id="timeline">
       <button class="icon-btn play" id="play" aria-label="Play production timeline" title="Play (space)">
@@ -77,11 +112,13 @@
 
     <div class="tour glass" id="tour" hidden>
       <div class="tour-progress" id="tour-progress"></div>
+      <div class="tour-auto-bar" id="tour-auto-bar"></div>
       <p class="tour-kicker" id="tour-kicker"></p>
       <h3 id="tour-title"></h3>
       <p id="tour-body"></p>
       <div class="tour-nav">
         <button class="btn ghost" id="tour-exit">Exit</button>
+        <button class="btn ghost" id="tour-auto" aria-pressed="false" title="Advance automatically">Auto-play</button>
         <span class="spacer"></span>
         <button class="btn" id="tour-prev">Back</button>
         <button class="btn primary" id="tour-next">Next</button>

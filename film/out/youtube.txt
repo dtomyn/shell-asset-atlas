@@ -1,0 +1,27 @@
+TITLE
+A decade of offshore production on one globe, from public records | Shell Asset Atlas (unofficial)
+
+DESCRIPTION
+Oil and gas operators report what they produce to public regulators every month. Shell Asset Atlas puts those records on a 3D globe: 210 installations and sites, 48 fields, 5,941 km of pipelines and a production history you can replay month by month.
+
+Try it yourself: [add the link]
+
+Everything in this video is the real application, filmed frame by frame, with the cursor pressing the real controls. The narration uses a synthetic voice (Kokoro). The music is synthesized.
+
+0:00 Public records, one globe
+0:15 What the atlas is
+0:39 Every column is a hub
+1:07 A decade you can replay
+1:49 Why it's called deepwater
+2:05 Gross is not net
+2:26 Fuel stations as a skyline
+2:44 Or take the tour
+3:08 Nothing taken on trust
+3:30 One globe
+
+Sources: US Bureau of Ocean Energy Management (BOEM / BSEE Data Center), North Sea Transition Authority (Open Government Licence v3.0), Norwegian Offshore Directorate (NLOD 2.0), OpenStreetMap contributors (ODbL), NASA EOSDIS GIBS imagery, CARTO basemap. Data built 2026-11-11.
+Production is gross (100%) volume for the asset, not Shell's net share, unless it says net. Retail counts are what OpenStreetMap volunteers have mapped, not an official network size.
+Unofficial portfolio project. Not affiliated with, or endorsed by, Shell plc. No Shell logos or proprietary data are used.
+
+TAGS
+data visualization, open data, offshore, oil and gas, energy, MapLibre, WebGL, 3D globe, production data, Gulf of America, North Sea, portfolio project
